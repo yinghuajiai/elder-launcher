@@ -1,6 +1,5 @@
 name: Android CI
 
-# 触发：push / PR 到 main、master；手动触发
 on:
   push:
     branches: [ "main", "master" ]
@@ -20,16 +19,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5          # 日志建议 v5，消除 deprecation
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle (带缓存)
+      # 安装 Gradle 8.5 到 PATH（仓库有 wrapper 时用 wrapper，没有时用 gradle 命令）
+      - name: Setup Gradle 8.5
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.5'
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:assembleDebug --stacktrace
+          else
+            echo "⚠️ gradlew 缺失，使用 Gradle 8.5 构建（建议本地执行: gradle wrapper --gradle-version 8.5）"
+            gradle :app:assembleDebug --stacktrace
+          fi
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -38,10 +46,13 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      # ---- Release：默认使用 debug 签名出包，CI 无需任何 secrets ----
-      # ---- 生产环境切换正式签名：见 README 说明（secrets 注入 keystore） ----
       - name: Build Release APK
-        run: ./gradlew :app:assembleRelease
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:assembleRelease
+          else
+            gradle :app:assembleRelease
+          fi
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -50,7 +61,6 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-      # 打 v* 标签时自动发布 GitHub Release
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
