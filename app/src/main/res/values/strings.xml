@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">长辈桌面</string>
+    <string name="title_permission_center">权限中心（Android 6~10）</string>
+    <string name="btn_all_runtime">一键授予全部危险权限</string>
+    <string name="btn_storage">存储权限</string>
+    <string name="btn_location">定位权限</string>
+    <string name="btn_phone">电话权限</string>
+    <string name="btn_sms">短信权限</string>
+    <string name="btn_contacts">联系人权限</string>
+    <string name="btn_overlay">悬浮窗（特殊）</string>
+    <string name="btn_usage">使用统计（特殊）</string>
+    <string name="btn_battery">电池白名单（特殊）</string>
+</resources>

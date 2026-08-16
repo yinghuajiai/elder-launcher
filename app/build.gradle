@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.elder.launcher'
+    compileSdk 34   // 编译用新 SDK，运行时被 maxSdk 29 限制在 Android 6~10
+
+    defaultConfig {
+        applicationId "com.elder.launcher"
+        minSdk 23        // Android 6.0 —— 运行时权限分水岭
+        targetSdk 29     // Android 10 —— 包可见性/分区存储分水岭
+        versionCode 1
+        versionName "0.1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false   // 基础框架阶段先关，需要时开
+            // 默认用 debug 签名出包：CI 无需 secrets 即可构建
+            // 生产环境请替换为正式 keystore（见 README）
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+}
