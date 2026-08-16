@@ -1,3 +1,4 @@
+// settings.gradle —— 插件仓库必须包含 google()，否则找不到 AGP
 pluginManagement {
     repositories {
         google()
