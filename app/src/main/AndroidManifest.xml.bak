@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">   <!-- ★ 缺这一行 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ============================================================
          权限分水岭：仅支持 Android 6.0 (23) ~ Android 10 (29)
          maxSdkVersion=29 → Android 11+ 设备直接判定不兼容，不安装。
+         由此天然规避：包可见性(queries)、分区存储强制、前台服务类型、
+         通知权限强制、后台启动全面限制 等一系列新版本约束。
          ============================================================ -->
     <uses-sdk android:maxSdkVersion="29" />
 
@@ -18,30 +19,41 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- ===== 运行时权限（危险组）：必须动态申请 ===== -->
+    <!-- ===== 运行时权限（危险组）：必须在代码中动态申请 ===== -->
+    <!-- 存储：targetSdk 29 + requestLegacyExternalStorage 可完整访问外部存储 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+    <!-- 定位 -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- 电话：直接拨号 / 通话状态（老人一键拨号） -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <!-- 短信：短信指令 / 守护转发（API 29 无需手机号专用权限） -->
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
+    <!-- 联系人：卡片/快捷拨号 -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
+    <!-- 录音：语音消息 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- 通话记录 -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
-    <!-- ===== 特殊权限：跳系统设置页单独授权 ===== -->
+    <!-- ===== 特殊权限：无弹窗，需跳系统设置页单独授权 ===== -->
+    <!-- 悬浮窗 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 使用情况访问（守护/统计） -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <!-- 电池优化白名单（保活） -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
