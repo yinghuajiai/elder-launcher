@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 背景：品牌蓝 -->
+    <path
+        android:fillColor="#1A5F7A"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- 人形头部：白色圆 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32c-8.5,0 -15,6.5 -15,15 0,8.5 6.5,15 15,15s15,-6.5 15,-15c0,-8.5 -6.5,-15 -15,-15z" />
+
+    <!-- 人形身体：白色圆角块 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,80c0,-13 11,-22 24,-22s24,9 24,22v4h-48z" />
+</vector>
