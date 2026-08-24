@@ -77,5 +77,36 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/btn_battery" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
+        <!-- 无障碍服务 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/title_accessibility"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:paddingBottom="16dp" />
+
+        <Button
+            android:id="@+id/btn_accessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_accessibility" />
+
+        <Button
+            android:id="@+id/btn_read_notifications"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_read_notifications" />
+
+        <Button
+            android:id="@+id/btn_tap_read"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_tap_read" />
     </LinearLayout>
 </ScrollView>

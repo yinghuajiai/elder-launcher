@@ -3,6 +3,7 @@ package com.elder.launcher
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
+import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
@@ -48,12 +49,27 @@ class MainActivity : BaseActivity() {
             if (!PermissionHelper.isIgnoringBatteryOptimizations(this)) PermissionHelper.openBatteryOptimizationSettings(this)
             else toast("已在电池白名单")
         }
+
+        // 无障碍服务
+        findViewById<Button>(R.id.btn_accessibility).setOnClickListener {
+            if (PermissionHelper.isAccessibilityServiceEnabled(this)) toast("无障碍服务已开启")
+            else PermissionHelper.openAccessibilitySettings(this)
+        }
+        findViewById<Button>(R.id.btn_read_notifications).setOnClickListener {
+            AccessibilitySettings.setReadNotifications(this, !AccessibilitySettings.readNotifications(this))
+            refreshAccessibilityState()
+        }
+        findViewById<Button>(R.id.btn_tap_read).setOnClickListener {
+            AccessibilitySettings.setTapToRead(this, !AccessibilitySettings.tapToRead(this))
+            refreshAccessibilityState()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        // 从系统设置返回后刷新状态（悬浮窗/使用统计类授权无回调）
+        // 从系统设置返回后刷新状态（悬浮窗/使用统计/无障碍类授权无回调）
         refreshSpecialPermissionState()
+        refreshAccessibilityState()
     }
 
     private fun refreshSpecialPermissionState() {
@@ -63,6 +79,15 @@ class MainActivity : BaseActivity() {
             if (PermissionHelper.hasUsageStatsPermission(this)) "使用统计：已授权" else "使用统计：未授权"
         findViewById<Button>(R.id.btn_battery).text =
             if (PermissionHelper.isIgnoringBatteryOptimizations(this)) "电池白名单：已加入" else "电池白名单：未加入"
+    }
+
+    private fun refreshAccessibilityState() {
+        findViewById<Button>(R.id.btn_accessibility).text =
+            if (PermissionHelper.isAccessibilityServiceEnabled(this)) "无障碍服务：已开启" else "无障碍服务：未开启（点击开启）"
+        findViewById<Button>(R.id.btn_read_notifications).text =
+            if (AccessibilitySettings.readNotifications(this)) "通知朗读：已开启" else "通知朗读：已关闭"
+        findViewById<Button>(R.id.btn_tap_read).text =
+            if (AccessibilitySettings.tapToRead(this)) "点读模式：已开启" else "点读模式：已关闭"
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
