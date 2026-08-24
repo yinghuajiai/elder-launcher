@@ -10,4 +10,10 @@
     <string name="btn_overlay">悬浮窗（特殊）</string>
     <string name="btn_usage">使用统计（特殊）</string>
     <string name="btn_battery">电池白名单（特殊）</string>
+    <string name="title_accessibility">无障碍服务（朗读 / 点读）</string>
+    <string name="btn_accessibility">无障碍服务：未开启（点击开启）</string>
+    <string name="btn_read_notifications">通知朗读：已开启</string>
+    <string name="btn_tap_read">点读模式：已开启</string>
+    <string name="accessibility_service_label">长辈桌面 · 无障碍服务</string>
+    <string name="accessibility_service_description">为长辈桌面提供朗读与点读服务：朗读收到的通知、点按屏幕时读出内容，帮助视力不佳的长辈使用手机。仅在本应用内使用，不收集个人数据。</string>
 </resources>
