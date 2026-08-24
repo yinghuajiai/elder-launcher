@@ -2,9 +2,13 @@ package com.elder.launcher.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Notification
+import android.content.Intent
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.elder.launcher.MainActivity
+import com.elder.launcher.keepalive.LockState
 import java.util.Locale
 
 /**
@@ -20,6 +24,9 @@ class ElderAccessibilityService : AccessibilityService() {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
+    /** 上一次"拉回前台"的时间，用于节流，避免高频重入造成循环。 */
+    private var lastRelaunchMs = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         isRunning = true
@@ -30,6 +37,7 @@ class ElderAccessibilityService : AccessibilityService() {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 currentForegroundPackage = event.packageName?.toString()
+                maybeKeepAlive(event.packageName?.toString())
             }
 
             AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED -> {
@@ -40,6 +48,28 @@ class ElderAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
                 if (AccessibilitySettings.tapToRead(this)) speakNode(event.source)
             }
+        }
+    }
+
+    /**
+     * 保活：锁定模式下，当前台切换到其它应用/桌面时，把本应用拉回前台。
+     * 跳过系统关键窗口（通知栏/来电/拨号），避免干扰正常通话与系统操作。
+     */
+    private fun maybeKeepAlive(pkg: String?) {
+        if (!LockState.lockEnabled(this)) return
+        if (pkg.isNullOrEmpty()) return
+        if (pkg == packageName) return
+        if (pkg == "android" || SKIP_PACKAGES.any { pkg.startsWith(it) }) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastRelaunchMs < RELAUNCH_INTERVAL_MS) return
+        lastRelaunchMs = now
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            // 前台启动可能被系统限制，忽略并等待下一次事件
         }
     }
 
@@ -112,5 +142,17 @@ class ElderAccessibilityService : AccessibilityService() {
         /** 当前前台应用包名（守护模块可用）。 */
         @Volatile
         var currentForegroundPackage: String? = null
+
+        /** 拉回前台的节流间隔。 */
+        private const val RELAUNCH_INTERVAL_MS = 1500L
+
+        /** 保活时跳过的系统关键窗口前缀。 */
+        private val SKIP_PACKAGES = setOf(
+            "com.android.systemui",
+            "com.android.incallui",
+            "com.android.dialer",
+            "com.google.android.dialer",
+            "com.android.phone"
+        )
     }
 }

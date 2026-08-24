@@ -5,6 +5,7 @@ import android.widget.Button
 import android.widget.Toast
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
 
@@ -63,6 +64,21 @@ class MainActivity : BaseActivity() {
             AccessibilitySettings.setTapToRead(this, !AccessibilitySettings.tapToRead(this))
             refreshAccessibilityState()
         }
+
+        // 锁定 / 保活
+        findViewById<Button>(R.id.btn_lock_mode).setOnClickListener {
+            val next = !LockState.lockEnabled(this)
+            LockState.setLockEnabled(this, next)
+            toast(if (next) getString(R.string.toast_lock_on) else getString(R.string.toast_lock_off))
+            refreshLockState()
+        }
+        findViewById<Button>(R.id.btn_exit_lock).setOnLongClickListener {
+            val next = !LockState.lockEnabled(this)
+            LockState.setLockEnabled(this, next)
+            toast(if (next) getString(R.string.toast_lock_on) else getString(R.string.toast_lock_off))
+            refreshLockState()
+            true
+        }
     }
 
     override fun onResume() {
@@ -70,6 +86,23 @@ class MainActivity : BaseActivity() {
         // 从系统设置返回后刷新状态（悬浮窗/使用统计/无障碍类授权无回调）
         refreshSpecialPermissionState()
         refreshAccessibilityState()
+        refreshLockState()
+    }
+
+    override fun onBackPressed() {
+        if (LockState.lockEnabled(this)) {
+            toast(getString(R.string.toast_locked_hint))
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    private fun refreshLockState() {
+        val locked = LockState.lockEnabled(this)
+        findViewById<Button>(R.id.btn_lock_mode).text =
+            if (locked) getString(R.string.btn_lock_mode) else getString(R.string.btn_lock_mode_off)
+        findViewById<Button>(R.id.btn_exit_lock).text =
+            if (locked) getString(R.string.btn_exit_lock) else getString(R.string.btn_lock)
     }
 
     private fun refreshSpecialPermissionState() {
