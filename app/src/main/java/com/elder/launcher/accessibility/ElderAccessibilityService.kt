@@ -1,35 +1,49 @@
 package com.elder.launcher.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Notification
+import android.content.Intent
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.elder.launcher.MainActivity
+import com.elder.launcher.keepalive.LockState
 import java.util.Locale
 
 /**
- * 长辈桌面无障碍服务：让视力不佳的长辈真正"用得上"手机。
+ * 长辈桌面无障碍服务。
  *
- * 核心能力：
- *  1. 通知朗读 —— 收到通知时用系统 TTS 读出标题与内容；
- *  2. 点读 —— 点按/聚焦控件时读出其文本或无障碍描述；
- *  3. 前台应用监听 —— 记录当前前台包名，供守护模块使用。
+ * 能力：
+ *  1. 朗读通知 / 点读（系统 TTS）；
+ *  2. 保活：锁定态下前台切到其它应用时，把本应用（主体应用）拉回前台；
+ *  3. 按键拦截：锁定态下拦截返回/最近任务按键。
+ *
+ * 配合 MainActivity 声明为 HOME 桌面，实现"锁定主体应用"：
+ * 不可划掉、按主页即回到本应用、重启后作为主屏幕自动恢复。
  */
 class ElderAccessibilityService : AccessibilityService() {
 
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
+    /** 上一次"拉回前台"的时间，用于节流，避免高频重入造成循环。 */
+    private var lastRelaunchMs = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         isRunning = true
         initTts()
+        enableKeyFiltering()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 currentForegroundPackage = event.packageName?.toString()
+                maybeKeepAlive(event.packageName?.toString())
             }
 
             AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED -> {
@@ -41,6 +55,45 @@ class ElderAccessibilityService : AccessibilityService() {
                 if (AccessibilitySettings.tapToRead(this)) speakNode(event.source)
             }
         }
+    }
+
+    /** 锁定态下拦截返回/最近任务按键，防止物理键逃出。 */
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (LockState.lockEnabled(this)) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_BACK,
+                KeyEvent.KEYCODE_APP_SWITCH -> return true
+            }
+        }
+        return super.onKeyEvent(event)
+    }
+
+    /**
+     * 保活：锁定态下当前台切换到其它应用/桌面时，把主体应用拉回前台。
+     * 跳过系统关键窗口（通知栏/来电/拨号），避免干扰正常通话与系统操作。
+     */
+    private fun maybeKeepAlive(pkg: String?) {
+        if (!LockState.lockEnabled(this)) return
+        if (pkg.isNullOrEmpty()) return
+        if (pkg == packageName) return
+        if (pkg == "android" || SKIP_PACKAGES.any { pkg.startsWith(it) }) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastRelaunchMs < RELAUNCH_INTERVAL_MS) return
+        lastRelaunchMs = now
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            // 前台启动可能被系统限制，忽略并等待下一次事件
+        }
+    }
+
+    private fun enableKeyFiltering() {
+        val info = serviceInfo
+        info.flags = info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+        setServiceInfo(info)
     }
 
     /** 读出一条通知（标题 + 正文）。 */
@@ -112,5 +165,17 @@ class ElderAccessibilityService : AccessibilityService() {
         /** 当前前台应用包名（守护模块可用）。 */
         @Volatile
         var currentForegroundPackage: String? = null
+
+        /** 拉回前台的节流间隔。 */
+        private const val RELAUNCH_INTERVAL_MS = 1500L
+
+        /** 保活时跳过的系统关键窗口前缀。 */
+        private val SKIP_PACKAGES = setOf(
+            "com.android.systemui",
+            "com.android.incallui",
+            "com.android.dialer",
+            "com.google.android.dialer",
+            "com.android.phone"
+        )
     }
 }

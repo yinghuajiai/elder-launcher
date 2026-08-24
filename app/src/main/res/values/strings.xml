@@ -16,4 +16,12 @@
     <string name="btn_tap_read">点读模式：已开启</string>
     <string name="accessibility_service_label">长辈桌面 · 无障碍服务</string>
     <string name="accessibility_service_description">为长辈桌面提供朗读与点读服务：朗读收到的通知、点按屏幕时读出内容，帮助视力不佳的长辈使用手机。仅在本应用内使用，不收集个人数据。</string>
+    <string name="title_lock">锁定 / 保活</string>
+    <string name="btn_lock_mode">锁定模式：已开启</string>
+    <string name="btn_lock_mode_off">锁定模式：已关闭</string>
+    <string name="btn_exit_lock">退出</string>
+    <string name="btn_lock">锁定</string>
+    <string name="toast_locked_hint">已锁定，长按右上角「退出」可解锁</string>
+    <string name="toast_lock_on">锁定已开启</string>
+    <string name="toast_lock_off">锁定已解除</string>
 </resources>
