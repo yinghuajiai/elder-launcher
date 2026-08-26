@@ -1,26 +1,38 @@
 package com.elder.launcher
 
+import android.content.ClipData
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.view.DragEvent
+import android.view.View
+import android.widget.AdapterView
 import android.widget.Button
 import android.widget.GridView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.keepalive.LockState
 import java.text.SimpleDateFormat
+import java.util.Collections
 import java.util.Date
 import java.util.Locale
 
 /**
  * 基础桌面（HOME）：固定时钟 + 应用图标网格 + 设置/退出入口。
- * 点击「添加」磁贴进入应用选择器；点击应用图标启动对应应用。
+ * 点击应用图标启动对应应用；「整理」进入编辑模式——拖动图标排序、点 × 删除。
  */
 class DesktopActivity : BaseActivity() {
 
     private lateinit var grid: GridView
+    private lateinit var adapter: AppGridAdapter
+    private lateinit var apps: MutableList<String>
+
+    private var editing = false
+    private var dragIndex = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,8 +42,9 @@ class DesktopActivity : BaseActivity() {
             SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
 
         grid = findViewById(R.id.grid_apps)
+
         grid.setOnItemClickListener { _, _, position, _ ->
-            val apps = DesktopApps.list(this)
+            if (editing) return@setOnItemClickListener
             if (position == apps.size) {
                 startActivity(Intent(this, AppPickerActivity::class.java))
             } else {
@@ -39,11 +52,25 @@ class DesktopActivity : BaseActivity() {
             }
         }
 
+        // 编辑模式下长按开始拖动排序
+        grid.setOnItemLongClickListener { _, view, position, _ ->
+            if (!editing || position !in apps.indices) return@setOnItemLongClickListener false
+            startDrag(view, position)
+            true
+        }
+
+        grid.setOnDragListener { _, event -> handleDrag(event) }
+
         // 设置入口：进入应用自身设置页
         findViewById<Button>(R.id.btn_settings).setOnClickListener {
             val i = Intent(this, MainActivity::class.java)
             i.putExtra(MainActivity.EXTRA_AS_SETTINGS, true)
             startActivity(i)
+        }
+
+        // 整理：进入/退出编辑模式（拖动排序 + 删除）
+        findViewById<Button>(R.id.btn_organize).setOnClickListener {
+            setEditing(!editing)
         }
 
         // 退出锁定：长按切换
@@ -62,9 +89,95 @@ class DesktopActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        grid.adapter = AppGridAdapter(this, DesktopApps.list(this))
+        reloadAdapter()
         refreshExitButton()
     }
+
+    private fun reloadAdapter() {
+        apps = DesktopApps.list(this).toMutableList()
+        editing = false
+        adapter = AppGridAdapter(this, apps)
+        adapter.editing = editing
+        adapter.onDelete = { position -> confirmDelete(position) }
+        grid.adapter = adapter
+        syncOrganizeUi()
+    }
+
+    private fun setEditing(value: Boolean) {
+        editing = value
+        adapter.editing = editing
+        syncOrganizeUi()
+    }
+
+    private fun syncOrganizeUi() {
+        findViewById<Button>(R.id.btn_organize).text =
+            getString(if (editing) R.string.organize_done else R.string.organize)
+        findViewById<TextView>(R.id.tv_edit_hint).visibility =
+            if (editing) View.VISIBLE else View.GONE
+    }
+
+    private fun startDrag(view: View, position: Int) {
+        dragIndex = position
+        val clip = ClipData.newPlainText("", "")
+        val shadow = View.DragShadowBuilder(view)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            view.startDragAndDrop(clip, shadow, null, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            view.startDrag(clip, shadow, null, 0)
+        }
+    }
+
+    private fun handleDrag(event: DragEvent): Boolean {
+        when (event.action) {
+            DragEvent.ACTION_DRAG_LOCATION -> {
+                val pos = grid.pointToPosition(event.x.toInt(), event.y.toInt())
+                if (pos != AdapterView.INVALID_POSITION && pos in apps.indices &&
+                    pos != dragIndex && dragIndex in apps.indices
+                ) {
+                    Collections.swap(apps, dragIndex, pos)
+                    dragIndex = pos
+                    adapter.notifyDataSetChanged()
+                }
+                return true
+            }
+            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
+                if (dragIndex != -1) {
+                    DesktopApps.replace(this, apps)
+                    dragIndex = -1
+                }
+                return true
+            }
+            else -> return false
+        }
+    }
+
+    private fun confirmDelete(position: Int) {
+        if (position !in apps.indices) return
+        val pkg = apps[position]
+        val label = appLabel(pkg)
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.delete_app))
+            .setMessage(getString(R.string.delete_confirm, label))
+            .setPositiveButton(R.string.confirm) { _, _ -> deleteApp(position) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteApp(position: Int) {
+        if (position !in apps.indices) return
+        apps.removeAt(position)
+        DesktopApps.replace(this, apps)
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun appLabel(pkg: String): String =
+        try {
+            packageManager.getApplicationInfo(pkg, 0)
+                .loadLabel(packageManager).toString()
+        } catch (_: Exception) {
+            pkg
+        }
 
     private fun refreshExitButton() {
         findViewById<Button>(R.id.btn_exit_lock).text =

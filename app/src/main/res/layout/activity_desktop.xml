@@ -49,17 +49,35 @@
             android:verticalSpacing="12dp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btn_settings"
+    <!-- 左上角：设置 + 整理 -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_margin="12dp"
-        android:minWidth="56dp"
-        android:minHeight="44dp"
-        android:text="@string/btn_settings"
-        android:textSize="14sp" />
+        android:orientation="horizontal">
 
+        <Button
+            android:id="@+id/btn_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:text="@string/btn_settings"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btn_organize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:text="@string/organize"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- 右上角：退出锁定（长按解除） -->
     <Button
         android:id="@+id/btn_exit_lock"
         android:layout_width="wrap_content"
@@ -70,4 +88,21 @@
         android:minHeight="44dp"
         android:text="@string/btn_exit_lock"
         android:textSize="14sp" />
+
+    <!-- 整理模式提示 -->
+    <TextView
+        android:id="@+id/tv_edit_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_margin="12dp"
+        android:background="#DD1A5F7A"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:text="@string/hint_edit"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:visibility="gone" />
 </FrameLayout>

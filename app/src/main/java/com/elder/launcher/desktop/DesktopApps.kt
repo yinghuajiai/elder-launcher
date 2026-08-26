@@ -30,4 +30,10 @@ object DesktopApps {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_APPS, next.joinToString(",")).apply()
     }
+
+    /** 覆盖保存整个列表（用于拖动排序后持久化新顺序）。 */
+    fun replace(context: Context, apps: List<String>) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_APPS, apps.joinToString(",")).apply()
+    }
 }
