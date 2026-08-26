@@ -84,11 +84,17 @@
                 android:layout_height="wrap_content"
                 android:text="@string/btn_usage" />
 
-            <Button
-                android:id="@+id/btn_battery"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_battery" />
+        <Button
+            android:id="@+id/btn_battery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_battery" />
+
+        <Button
+            android:id="@+id/btn_autostart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_autostart" />
 
             <Space
                 android:layout_width="match_parent"

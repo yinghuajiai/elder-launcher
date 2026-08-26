@@ -67,6 +67,10 @@ class MainActivity : BaseActivity() {
             if (!PermissionHelper.isIgnoringBatteryOptimizations(this)) PermissionHelper.openBatteryOptimizationSettings(this)
             else toast("已在电池白名单")
         }
+        findViewById<Button>(R.id.btn_autostart).setOnClickListener {
+            PermissionHelper.openAutoStartSettings(this)
+            toast("请在自启动列表中允许「长辈桌面」")
+        }
 
         // 无障碍服务
         findViewById<Button>(R.id.btn_accessibility).setOnClickListener {

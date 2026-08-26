@@ -12,6 +12,11 @@
     <string name="btn_overlay">悬浮窗（特殊）</string>
     <string name="btn_usage">使用统计（特殊）</string>
     <string name="btn_battery">电池白名单（特殊）</string>
+    <string name="btn_autostart">自启动（特殊）</string>
+    <string name="cd_app_icon">应用图标</string>
+    <string name="add_tile_plus">+</string>
+    <string name="add_tile_label">添加</string>
+    <string name="search_hint">搜索应用</string>
     <string name="title_accessibility">无障碍服务（朗读 / 点读）</string>
     <string name="btn_accessibility">无障碍服务：未开启（点击开启）</string>
     <string name="btn_read_notifications">通知朗读：已开启</string>

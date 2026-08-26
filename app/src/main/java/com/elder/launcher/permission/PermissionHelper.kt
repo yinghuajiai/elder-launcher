@@ -2,6 +2,7 @@ package com.elder.launcher.permission
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -83,6 +84,33 @@ object PermissionHelper {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
+    }
+
+    // ==================== 特殊权限：自启动（厂商 ROM，重启后自动拉起无障碍） ====================
+    fun openAutoStartSettings(context: Context) {
+        val pm = context.packageManager
+        val candidates = listOf(
+            ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            ComponentName("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"),
+            ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+            ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")
+        )
+        for (cn in candidates) {
+            val intent = Intent().setComponent(cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(pm) != null) {
+                try {
+                    context.startActivity(intent)
+                    return
+                } catch (_: Exception) {
+                }
+            }
+        }
+        // 兜底：跳应用详情页
+        val detail = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:${context.packageName}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(detail)
     }
 
     // ==================== 特殊权限：未知来源安装（API 26+，26~29 需要） ====================
