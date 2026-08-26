@@ -39,6 +39,9 @@
     <string name="organize">整理</string>
     <string name="organize_done">完成</string>
     <string name="hint_edit">点 × 删除；长按图标可拖动排序</string>
+    <string name="delete_zone">拖到此处删除</string>
+    <string name="delete_zone_active">松开即可删除</string>
+    <string name="toast_removed">已从桌面移除</string>
     <string name="delete_app">删除</string>
     <string name="delete_confirm">确定删除「%1$s」吗？</string>
     <string name="cancel">取消</string>

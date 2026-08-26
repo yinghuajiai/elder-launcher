@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F0F4F8">
@@ -49,33 +50,17 @@
             android:verticalSpacing="12dp" />
     </LinearLayout>
 
-    <!-- 左上角：设置 + 整理 -->
-    <LinearLayout
+    <!-- 左上角：设置 -->
+    <Button
+        android:id="@+id/btn_settings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_margin="12dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btn_settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="56dp"
-            android:minHeight="44dp"
-            android:text="@string/btn_settings"
-            android:textSize="14sp" />
-
-        <Button
-            android:id="@+id/btn_organize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:minWidth="56dp"
-            android:minHeight="44dp"
-            android:text="@string/organize"
-            android:textSize="14sp" />
-    </LinearLayout>
+        android:minWidth="56dp"
+        android:minHeight="44dp"
+        android:text="@string/btn_settings"
+        android:textSize="14sp" />
 
     <!-- 右上角：退出锁定（长按解除） -->
     <Button
@@ -89,20 +74,22 @@
         android:text="@string/btn_exit_lock"
         android:textSize="14sp" />
 
-    <!-- 整理模式提示 -->
+    <!-- 拖动过程中出现的删除区：把图标拖到这里即可从桌面移除。
+         始终占据布局（避免拖动开始时来不及布局），用 alpha 控制显隐。 -->
     <TextView
-        android:id="@+id/tv_edit_hint"
+        android:id="@+id/tv_delete_zone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_margin="12dp"
-        android:background="#DD1A5F7A"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
-        android:text="@string/hint_edit"
+        android:layout_marginBottom="20dp"
+        android:alpha="0"
+        android:background="@drawable/bg_delete_zone"
+        android:paddingStart="30dp"
+        android:paddingEnd="30dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:text="@string/delete_zone"
         android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:visibility="gone" />
+        android:textSize="17sp"
+        android:textStyle="bold" />
 </FrameLayout>
