@@ -15,6 +15,7 @@ import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.keepalive.LockState
+import com.elder.launcher.lunar.LunarCalendar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,8 +40,7 @@ class DesktopActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_desktop)
 
-        findViewById<TextView>(R.id.tv_date).text =
-            SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
+        updateDateTime()
 
         grid = findViewById(R.id.grid_apps)
         deleteZone = findViewById(R.id.tv_delete_zone)
@@ -88,8 +88,16 @@ class DesktopActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        updateDateTime()
         reloadAdapter()
         refreshExitButton()
+    }
+
+    /** 更新公历日期与农历日期显示。 */
+    private fun updateDateTime() {
+        findViewById<TextView>(R.id.tv_date).text =
+            SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
+        findViewById<TextView>(R.id.tv_lunar).text = LunarCalendar.todayText()
     }
 
     private fun reloadAdapter() {
