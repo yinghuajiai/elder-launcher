@@ -17,13 +17,12 @@ import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.keepalive.LockState
 import java.text.SimpleDateFormat
-import java.util.Collections
 import java.util.Date
 import java.util.Locale
 
 /**
  * 基础桌面（HOME）：固定时钟 + 应用图标网格 + 设置/退出入口。
- * 点击应用图标启动对应应用；「整理」进入编辑模式——拖动图标排序、点 × 删除。
+ * 点击应用图标启动对应应用；长按图标拖动排序；「整理」进入编辑模式点 × 删除。
  */
 class DesktopActivity : BaseActivity() {
 
@@ -33,6 +32,8 @@ class DesktopActivity : BaseActivity() {
 
     private var editing = false
     private var dragIndex = -1
+    private var dragTarget = -1
+    private var dragView: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,9 +53,9 @@ class DesktopActivity : BaseActivity() {
             }
         }
 
-        // 编辑模式下长按开始拖动排序
+        // 长按图标开始拖动排序（无需先进入整理模式）
         grid.setOnItemLongClickListener { _, view, position, _ ->
-            if (!editing || position !in apps.indices) return@setOnItemLongClickListener false
+            if (position !in apps.indices) return@setOnItemLongClickListener false
             startDrag(view, position)
             true
         }
@@ -118,13 +119,22 @@ class DesktopActivity : BaseActivity() {
 
     private fun startDrag(view: View, position: Int) {
         dragIndex = position
+        dragTarget = position
+        dragView = view
         val clip = ClipData.newPlainText("", "")
         val shadow = View.DragShadowBuilder(view)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        view.visibility = View.INVISIBLE
+        val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             view.startDragAndDrop(clip, shadow, null, 0)
         } else {
             @Suppress("DEPRECATION")
             view.startDrag(clip, shadow, null, 0)
+        }
+        if (!started) {
+            view.visibility = View.VISIBLE
+            dragView = null
+            dragIndex = -1
+            dragTarget = -1
         }
     }
 
@@ -132,24 +142,31 @@ class DesktopActivity : BaseActivity() {
         when (event.action) {
             DragEvent.ACTION_DRAG_LOCATION -> {
                 val pos = grid.pointToPosition(event.x.toInt(), event.y.toInt())
-                if (pos != AdapterView.INVALID_POSITION && pos in apps.indices &&
-                    pos != dragIndex && dragIndex in apps.indices
-                ) {
-                    Collections.swap(apps, dragIndex, pos)
-                    dragIndex = pos
-                    adapter.notifyDataSetChanged()
+                if (pos != AdapterView.INVALID_POSITION && pos < apps.size) {
+                    dragTarget = pos
                 }
                 return true
             }
             DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
-                if (dragIndex != -1) {
-                    DesktopApps.replace(this, apps)
-                    dragIndex = -1
-                }
+                finishDrag()
                 return true
             }
             else -> return false
         }
+    }
+
+    /** 拖到目标位置落下后，把图标从原位置移动到目标位置并持久化。 */
+    private fun finishDrag() {
+        if (dragIndex in apps.indices && dragTarget in apps.indices && dragIndex != dragTarget) {
+            val moved = apps.removeAt(dragIndex)
+            apps.add(dragTarget, moved)
+            DesktopApps.replace(this, apps)
+        }
+        dragView?.visibility = View.VISIBLE
+        dragView = null
+        dragIndex = -1
+        dragTarget = -1
+        adapter.notifyDataSetChanged()
     }
 
     private fun confirmDelete(position: Int) {
