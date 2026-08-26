@@ -20,23 +20,29 @@
             android:padding="12dp"
             android:textSize="16sp" />
 
-        <ListView
-            android:id="@+id/list_apps"
+        <!-- 列表区域：索引条只占这块，不会盖到搜索框 -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@android:color/transparent"
-            android:dividerHeight="2dp" />
-    </LinearLayout>
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
-    <!-- 右侧 A-Z 字母索引条 -->
-    <com.elder.launcher.desktop.LetterIndexBar
-        android:id="@+id/index_bar"
-        android:layout_width="32dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="end|center_vertical"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="2dp"
-        android:layout_marginBottom="12dp" />
+            <ListView
+                android:id="@+id/list_apps"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:divider="@android:color/transparent"
+                android:dividerHeight="2dp" />
+
+            <com.elder.launcher.desktop.LetterIndexBar
+                android:id="@+id/index_bar"
+                android:layout_width="32dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="2dp"
+                android:layout_marginBottom="8dp" />
+        </FrameLayout>
+    </LinearLayout>
 
     <!-- 按住索引条时显示的当前字母气泡 -->
     <TextView

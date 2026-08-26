@@ -55,6 +55,16 @@ class AppPickerActivity : BaseActivity() {
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
         })
 
+        // 输入框获得焦点时收起索引条，避免被键盘顶起
+        searchInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                indexBar.visibility = View.GONE
+                bubble.visibility = View.GONE
+            } else if (searchInput.text.isEmpty()) {
+                indexBar.visibility = View.VISIBLE
+            }
+        }
+
         listView.setOnItemClickListener { _, _, position, _ ->
             val info = adapter.getItem(position) as ResolveInfo
             val pkg = info.activityInfo.packageName
@@ -71,9 +81,20 @@ class AppPickerActivity : BaseActivity() {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val collator = Collator.getInstance(Locale.CHINA)
         return packageManager.queryIntentActivities(intent, 0)
-            .sortedWith { a, b ->
-                collator.compare(a.loadLabel(packageManager).toString(), b.loadLabel(packageManager).toString())
+            .map { it to it.loadLabel(packageManager).toString() }
+            .sortedWith { (_, la), (_, lb) ->
+                val fa = PinyinUtil.firstLetter(la)
+                val fb = PinyinUtil.firstLetter(lb)
+                when {
+                    fa != fb -> when {
+                        fa == '#' -> 1
+                        fb == '#' -> -1
+                        else -> fa.compareTo(fb)
+                    }
+                    else -> collator.compare(la, lb)
+                }
             }
+            .map { it.first }
     }
 
     private fun setupIndexBar() {
@@ -104,8 +125,8 @@ class AppPickerActivity : BaseActivity() {
     private fun applyFilter(query: String) {
         val q = query.trim()
         if (q.isEmpty()) {
-            indexBar.visibility = View.VISIBLE
             adapter.submit(allApps)
+            if (!searchInput.hasFocus()) indexBar.visibility = View.VISIBLE
         } else {
             indexBar.visibility = View.GONE
             val filtered = allApps.filter {

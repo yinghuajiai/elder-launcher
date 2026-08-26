@@ -68,6 +68,11 @@
     <string name="lock_mode_desc">开启后离开桌面自动拉回</string>
     <string name="about_app">应用名称</string>
     <string name="about_version">版本</string>
+    <string name="about_github">GitHub 仓库</string>
+    <string name="about_github_url">https://github.com/yinghuajimew/elder-launcher</string>
+    <string name="about_license">开源协议</string>
+    <string name="license_title">开源协议 (AGPL-3.0)</string>
+    <string name="license_summary">本软件采用 GNU Affero General Public License v3.0（AGPL-3.0）开源。\n\n任何人可自由使用、复制、修改和分发本软件及其源代码；若修改后通过网络提供服务，须同样以 AGPL-3.0 开源其修改。\n\n完整协议文本见项目仓库的 LICENSE 文件。</string>
     <string name="item_overlay">悬浮窗</string>
     <string name="item_usage">使用统计</string>
     <string name="item_battery">电池白名单</string>
