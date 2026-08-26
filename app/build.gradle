@@ -15,10 +15,25 @@ android {
         versionName "0.1.0"
     }
 
+    // ★ 固定签名：debug/release 共用同一把密钥（testkey.bks），
+    //   避免每次换环境导致「签名不一致、需卸载重装」。
+    signingConfigs {
+        release {
+            storeFile file("keystore/testkey.bks")
+            storeType "BKS"
+            storePassword "android"
+            keyAlias "mt"
+            keyPassword "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 

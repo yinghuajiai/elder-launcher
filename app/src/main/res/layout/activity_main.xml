@@ -4,15 +4,20 @@
     android:layout_height="match_parent"
     android:background="#F0F4F8">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+        <!-- 顶部标题（固定） -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp">
 
             <TextView
                 android:id="@+id/title_onboarding"
@@ -20,138 +25,243 @@
                 android:layout_height="wrap_content"
                 android:text="@string/title_onboarding"
                 android:textSize="24sp"
-                android:textStyle="bold"
-                android:paddingBottom="8dp" />
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/subtitle_onboarding"
-                android:textSize="14sp"
                 android:textColor="#666666"
-                android:paddingBottom="16dp" />
+                android:textSize="14sp" />
+        </LinearLayout>
 
-            <!-- 危险权限：一键全授 -->
-            <Button
-                android:id="@+id/btn_all"
+        <!-- 分组区（可滚动） -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="false">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/btn_all_runtime" />
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="8dp">
 
-            <Button
-                android:id="@+id/btn_storage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_storage" />
+                <!-- ============ 危险权限 ============ -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-            <Button
-                android:id="@+id/btn_location"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_location" />
+                    <TextView
+                        android:id="@+id/group_runtime_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="12dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btn_phone"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_phone" />
+                    <LinearLayout
+                        android:id="@+id/group_runtime_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
 
-            <Button
-                android:id="@+id/btn_sms"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_sms" />
+                        <Button
+                            android:id="@+id/btn_all"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/btn_all_runtime" />
 
-            <Button
-                android:id="@+id/btn_contacts"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_contacts" />
+                        <Button
+                            android:id="@+id/btn_storage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_storage" />
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="16dp" />
+                        <Button
+                            android:id="@+id/btn_location"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_location" />
 
-            <!-- 特殊权限：跳系统设置 -->
-            <Button
-                android:id="@+id/btn_overlay"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_overlay" />
+                        <Button
+                            android:id="@+id/btn_phone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_phone" />
 
-            <Button
-                android:id="@+id/btn_usage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_usage" />
+                        <Button
+                            android:id="@+id/btn_sms"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_sms" />
 
-        <Button
-            android:id="@+id/btn_battery"
+                        <Button
+                            android:id="@+id/btn_contacts"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_contacts" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ============ 特殊权限 ============ -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/group_special_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="12dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/group_special_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/btn_overlay"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/btn_overlay" />
+
+                        <Button
+                            android:id="@+id/btn_usage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_usage" />
+
+                        <Button
+                            android:id="@+id/btn_battery"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_battery" />
+
+                        <Button
+                            android:id="@+id/btn_autostart"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_autostart" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ============ 无障碍服务 ============ -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/group_accessibility_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="12dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/group_accessibility_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/btn_accessibility"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/btn_accessibility" />
+
+                        <Button
+                            android:id="@+id/btn_read_notifications"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_read_notifications" />
+
+                        <Button
+                            android:id="@+id/btn_tap_read"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_tap_read" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ============ 锁定 / 保活 ============ -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/group_lock_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="12dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/group_lock_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/btn_lock_mode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/btn_lock_mode" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- 底部主按钮（固定，无需滚动即可返回） -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/btn_battery" />
+            android:padding="16dp">
 
-        <Button
-            android:id="@+id/btn_autostart"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_autostart" />
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="24dp" />
-
-            <!-- 无障碍服务 -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/title_accessibility"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:paddingBottom="16dp" />
-
-            <Button
-                android:id="@+id/btn_accessibility"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_accessibility" />
-
-            <Button
-                android:id="@+id/btn_read_notifications"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_read_notifications" />
-
-            <Button
-                android:id="@+id/btn_tap_read"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_tap_read" />
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="24dp" />
-
-            <!-- 锁定 / 保活 -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/title_lock"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:paddingBottom="16dp" />
-
-            <Button
-                android:id="@+id/btn_lock_mode"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_lock_mode" />
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="24dp" />
-
-            <!-- 开始使用 -->
             <Button
                 android:id="@+id/btn_start"
                 android:layout_width="match_parent"
@@ -161,7 +271,7 @@
                 android:textColor="#FFFFFF"
                 android:textSize="18sp" />
         </LinearLayout>
-    </ScrollView>
+    </LinearLayout>
 
     <!-- 退出锁定：长按解除，避免长辈误触 -->
     <Button

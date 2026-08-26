@@ -20,6 +20,8 @@
     <string name="add_tile_plus">+</string>
     <string name="add_tile_label">添加</string>
     <string name="search_hint">搜索应用</string>
+    <string name="title_runtime">危险权限</string>
+    <string name="title_special">特殊权限</string>
     <string name="title_accessibility">无障碍服务（朗读 / 点读）</string>
     <string name="btn_accessibility">无障碍服务：未开启（点击开启）</string>
     <string name="btn_read_notifications">通知朗读：已开启</string>
@@ -34,4 +36,12 @@
     <string name="toast_locked_hint">已锁定，长按右上角「退出」可解锁</string>
     <string name="toast_lock_on">锁定已开启</string>
     <string name="toast_lock_off">锁定已解除</string>
+    <string name="organize">整理</string>
+    <string name="organize_done">完成</string>
+    <string name="hint_edit">拖动调整位置，点 × 删除</string>
+    <string name="delete_app">删除</string>
+    <string name="delete_confirm">确定删除「%1$s」吗？</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确定</string>
+    <string name="cd_delete">删除</string>
 </resources>
