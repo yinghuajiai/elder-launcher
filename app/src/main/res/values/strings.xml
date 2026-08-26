@@ -13,6 +13,9 @@
     <string name="btn_usage">使用统计（特殊）</string>
     <string name="btn_battery">电池白名单（特殊）</string>
     <string name="btn_autostart">自启动（特殊）</string>
+    <string name="btn_settings">设置</string>
+    <string name="btn_back_desktop">返回桌面</string>
+    <string name="title_settings">设置</string>
     <string name="cd_app_icon">应用图标</string>
     <string name="add_tile_plus">+</string>
     <string name="add_tile_label">添加</string>

@@ -3,6 +3,7 @@ package com.elder.launcher
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
@@ -17,8 +18,10 @@ class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 已完成引导 → 直接进入桌面
-        if (OnboardingState.isDone(this)) {
+        val asSettings = intent.getBooleanExtra(EXTRA_AS_SETTINGS, false)
+
+        // 已完成引导且非设置模式 → 直接进入桌面
+        if (OnboardingState.isDone(this) && !asSettings) {
             startActivity(Intent(this, DesktopActivity::class.java))
             finish()
             return
@@ -26,11 +29,21 @@ class MainActivity : BaseActivity() {
 
         setContentView(R.layout.activity_main)
 
-        // 开始使用：完成引导，进入桌面
+        // 设置模式下标题与按钮语义调整
+        if (asSettings) {
+            findViewById<TextView>(R.id.title_onboarding).text = getString(R.string.title_settings)
+            findViewById<Button>(R.id.btn_start).text = getString(R.string.btn_back_desktop)
+        }
+
+        // 开始使用：完成引导，进入桌面；设置模式下则返回桌面
         findViewById<Button>(R.id.btn_start).setOnClickListener {
-            OnboardingState.setDone(this, true)
-            startActivity(Intent(this, DesktopActivity::class.java))
-            finish()
+            if (asSettings) {
+                finish()
+            } else {
+                OnboardingState.setDone(this, true)
+                startActivity(Intent(this, DesktopActivity::class.java))
+                finish()
+            }
         }
 
         findViewById<Button>(R.id.btn_all).setOnClickListener {
@@ -145,4 +158,9 @@ class MainActivity : BaseActivity() {
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    companion object {
+        /** 以设置页模式打开（跳过引导跳转）。 */
+        const val EXTRA_AS_SETTINGS = "as_settings"
+    }
 }
