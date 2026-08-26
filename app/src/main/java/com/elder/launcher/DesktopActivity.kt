@@ -11,7 +11,6 @@ import android.widget.Button
 import android.widget.GridView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
@@ -22,18 +21,19 @@ import java.util.Locale
 
 /**
  * 基础桌面（HOME）：固定时钟 + 应用图标网格 + 设置/退出入口。
- * 点击应用图标启动对应应用；长按图标拖动排序；「整理」进入编辑模式点 × 删除。
+ * 点击应用图标启动对应应用；长按图标开始拖动——
+ * 拖到别处松开即排序，拖到底部「删除区」松开即从桌面移除。
  */
 class DesktopActivity : BaseActivity() {
 
     private lateinit var grid: GridView
     private lateinit var adapter: AppGridAdapter
     private lateinit var apps: MutableList<String>
+    private lateinit var deleteZone: TextView
 
-    private var editing = false
     private var dragIndex = -1
     private var dragTarget = -1
-    private var dragView: View? = null
+    private var deleteZoneActive = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,9 +43,9 @@ class DesktopActivity : BaseActivity() {
             SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
 
         grid = findViewById(R.id.grid_apps)
+        deleteZone = findViewById(R.id.tv_delete_zone)
 
         grid.setOnItemClickListener { _, _, position, _ ->
-            if (editing) return@setOnItemClickListener
             if (position == apps.size) {
                 startActivity(Intent(this, AppPickerActivity::class.java))
             } else {
@@ -53,25 +53,23 @@ class DesktopActivity : BaseActivity() {
             }
         }
 
-        // 长按图标开始拖动排序（无需先进入整理模式）
+        // 长按图标：显示删除区并开始拖动
         grid.setOnItemLongClickListener { _, view, position, _ ->
             if (position !in apps.indices) return@setOnItemLongClickListener false
             startDrag(view, position)
             true
         }
 
-        grid.setOnDragListener { _, event -> handleDrag(event) }
+        grid.setOnDragListener { _, event -> handleGridDrag(event) }
+        deleteZone.setOnDragListener { _, event -> handleDeleteZoneDrag(event) }
+        // 根布局作为兜底：手指拖到空白/时钟等非目标区域松开时，也要完成清理
+        findViewById<View>(R.id.root).setOnDragListener { _, event -> handleRootDrag(event) }
 
         // 设置入口：进入应用自身设置页
         findViewById<Button>(R.id.btn_settings).setOnClickListener {
             val i = Intent(this, MainActivity::class.java)
             i.putExtra(MainActivity.EXTRA_AS_SETTINGS, true)
             startActivity(i)
-        }
-
-        // 整理：进入/退出编辑模式（拖动排序 + 删除）
-        findViewById<Button>(R.id.btn_organize).setOnClickListener {
-            setEditing(!editing)
         }
 
         // 退出锁定：长按切换
@@ -96,49 +94,27 @@ class DesktopActivity : BaseActivity() {
 
     private fun reloadAdapter() {
         apps = DesktopApps.list(this).toMutableList()
-        editing = false
         adapter = AppGridAdapter(this, apps)
-        adapter.editing = editing
-        adapter.onDelete = { position -> confirmDelete(position) }
         grid.adapter = adapter
-        syncOrganizeUi()
     }
 
-    private fun setEditing(value: Boolean) {
-        editing = value
-        adapter.editing = editing
-        syncOrganizeUi()
-    }
-
-    private fun syncOrganizeUi() {
-        findViewById<Button>(R.id.btn_organize).text =
-            getString(if (editing) R.string.organize_done else R.string.organize)
-        findViewById<TextView>(R.id.tv_edit_hint).visibility =
-            if (editing) View.VISIBLE else View.GONE
-    }
+    // ==================== 拖动 ====================
 
     private fun startDrag(view: View, position: Int) {
         dragIndex = position
         dragTarget = position
-        dragView = view
+        deleteZone.alpha = 1f
         val clip = ClipData.newPlainText("", "")
         val shadow = View.DragShadowBuilder(view)
-        view.visibility = View.INVISIBLE
-        val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             view.startDragAndDrop(clip, shadow, null, 0)
         } else {
             @Suppress("DEPRECATION")
             view.startDrag(clip, shadow, null, 0)
         }
-        if (!started) {
-            view.visibility = View.VISIBLE
-            dragView = null
-            dragIndex = -1
-            dragTarget = -1
-        }
     }
 
-    private fun handleDrag(event: DragEvent): Boolean {
+    private fun handleGridDrag(event: DragEvent): Boolean {
         when (event.action) {
             DragEvent.ACTION_DRAG_LOCATION -> {
                 val pos = grid.pointToPosition(event.x.toInt(), event.y.toInt())
@@ -146,53 +122,67 @@ class DesktopActivity : BaseActivity() {
                     dragTarget = pos
                 }
             }
-            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> finishDrag()
+            DragEvent.ACTION_DROP -> finishDrag()
+            DragEvent.ACTION_DRAG_ENDED -> cleanupDrag()
         }
-        // 对所有事件（含 ACTION_DRAG_STARTED）都返回 true，
-        // GridView 才会成为有效拖放目标，收到 LOCATION / DROP 事件完成换位。
         return true
     }
 
-    /** 拖到目标位置落下后，把图标从原位置移动到目标位置并持久化。 */
+    private fun handleDeleteZoneDrag(event: DragEvent): Boolean {
+        when (event.action) {
+            DragEvent.ACTION_DRAG_ENTERED -> setDeleteZoneActive(true)
+            DragEvent.ACTION_DRAG_EXITED -> setDeleteZoneActive(false)
+            DragEvent.ACTION_DROP -> deleteDraggedApp()
+            DragEvent.ACTION_DRAG_ENDED -> cleanupDrag()
+        }
+        return true
+    }
+
+    private fun handleRootDrag(event: DragEvent): Boolean {
+        when (event.action) {
+            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> cleanupDrag()
+        }
+        return true
+    }
+
+    /** 拖到网格其它位置落下：移动到目标位置并保存。 */
     private fun finishDrag() {
         if (dragIndex in apps.indices && dragTarget in apps.indices && dragIndex != dragTarget) {
             val moved = apps.removeAt(dragIndex)
             apps.add(dragTarget, moved)
             DesktopApps.replace(this, apps)
         }
-        dragView?.visibility = View.VISIBLE
-        dragView = null
+        cleanupDrag()
+    }
+
+    /** 拖到删除区落下：从桌面移除。 */
+    private fun deleteDraggedApp() {
+        if (dragIndex in apps.indices) {
+            apps.removeAt(dragIndex)
+            DesktopApps.replace(this, apps)
+            toast(getString(R.string.toast_removed))
+        }
+        cleanupDrag()
+    }
+
+    private fun cleanupDrag() {
         dragIndex = -1
         dragTarget = -1
+        deleteZone.alpha = 0f
+        setDeleteZoneActive(false)
         adapter.notifyDataSetChanged()
     }
 
-    private fun confirmDelete(position: Int) {
-        if (position !in apps.indices) return
-        val pkg = apps[position]
-        val label = appLabel(pkg)
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.delete_app))
-            .setMessage(getString(R.string.delete_confirm, label))
-            .setPositiveButton(R.string.confirm) { _, _ -> deleteApp(position) }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+    private fun setDeleteZoneActive(active: Boolean) {
+        if (deleteZoneActive == active) return
+        deleteZoneActive = active
+        deleteZone.setBackgroundResource(
+            if (active) R.drawable.bg_delete_zone_active else R.drawable.bg_delete_zone
+        )
+        deleteZone.text = getString(if (active) R.string.delete_zone_active else R.string.delete_zone)
     }
 
-    private fun deleteApp(position: Int) {
-        if (position !in apps.indices) return
-        apps.removeAt(position)
-        DesktopApps.replace(this, apps)
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun appLabel(pkg: String): String =
-        try {
-            packageManager.getApplicationInfo(pkg, 0)
-                .loadLabel(packageManager).toString()
-        } catch (_: Exception) {
-            pkg
-        }
+    // ==================== 其它 ====================
 
     private fun refreshExitButton() {
         findViewById<Button>(R.id.btn_exit_lock).text =
@@ -207,6 +197,8 @@ class DesktopActivity : BaseActivity() {
             Toast.makeText(this, "无法打开该应用", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     override fun onBackPressed() {
         // 桌面作为主页，不响应返回键
