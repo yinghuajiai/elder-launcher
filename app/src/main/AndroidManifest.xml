@@ -76,6 +76,12 @@
             </intent-filter>
         </activity>
 
+        <!-- 应用选择器：搜索/浏览可启动应用 -->
+        <activity
+            android:name=".AppPickerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <!-- 无障碍服务：通知朗读 + 点读 + 前台应用监听 -->
         <service
             android:name=".accessibility.ElderAccessibilityService"

@@ -3,14 +3,17 @@ package com.elder.launcher.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Notification
+import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.inputmethod.InputMethodManager
 import com.elder.launcher.DesktopActivity
 import com.elder.launcher.MainActivity
+import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.setup.OnboardingState
 import java.util.Locale
@@ -72,13 +75,18 @@ class ElderAccessibilityService : AccessibilityService() {
 
     /**
      * 保活：锁定态下当前台切换到其它应用/桌面时，把主体应用拉回前台。
-     * 跳过系统关键窗口（通知栏/来电/拨号），避免干扰正常通话与系统操作。
+     * 跳过：
+     *  - 系统关键窗口（通知栏/来电/拨号）
+     *  - 已添加到桌面的应用（白名单，使用中不拉回）
+     *  - 输入法键盘（避免搜索时键盘弹出被拉回）
      */
     private fun maybeKeepAlive(pkg: String?) {
         if (!LockState.lockEnabled(this)) return
         if (pkg.isNullOrEmpty()) return
         if (pkg == packageName) return
         if (pkg == "android" || SKIP_PACKAGES.any { pkg.startsWith(it) }) return
+        if (DesktopApps.list(this).contains(pkg)) return
+        if (isInputMethod(pkg)) return
         val now = SystemClock.elapsedRealtime()
         if (now - lastRelaunchMs < RELAUNCH_INTERVAL_MS) return
         lastRelaunchMs = now
@@ -90,6 +98,16 @@ class ElderAccessibilityService : AccessibilityService() {
             startActivity(intent)
         } catch (_: Exception) {
             // 前台启动可能被系统限制，忽略并等待下一次事件
+        }
+    }
+
+    /** 判断是否为已启用的输入法（键盘）。 */
+    private fun isInputMethod(pkg: String): Boolean {
+        return try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.enabledInputMethodList.any { it.packageName == pkg }
+        } catch (_: Exception) {
+            false
         }
     }
 
