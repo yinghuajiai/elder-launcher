@@ -145,14 +145,12 @@ class DesktopActivity : BaseActivity() {
                 if (pos != AdapterView.INVALID_POSITION && pos < apps.size) {
                     dragTarget = pos
                 }
-                return true
             }
-            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
-                finishDrag()
-                return true
-            }
-            else -> return false
+            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> finishDrag()
         }
+        // 对所有事件（含 ACTION_DRAG_STARTED）都返回 true，
+        // GridView 才会成为有效拖放目标，收到 LOCATION / DROP 事件完成换位。
+        return true
     }
 
     /** 拖到目标位置落下后，把图标从原位置移动到目标位置并持久化。 */
