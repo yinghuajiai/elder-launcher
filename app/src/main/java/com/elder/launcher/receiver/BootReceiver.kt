@@ -3,8 +3,10 @@ package com.elder.launcher.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.elder.launcher.DesktopActivity
 import com.elder.launcher.MainActivity
 import com.elder.launcher.keepalive.LockState
+import com.elder.launcher.setup.OnboardingState
 
 /**
  * 开机自启：重启后自动回到桌面（锁定态）。
@@ -23,7 +25,8 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     private fun launch(context: Context) {
-        val i = Intent(context, MainActivity::class.java).apply {
+        val target = if (OnboardingState.isDone(context)) DesktopActivity::class.java else MainActivity::class.java
+        val i = Intent(context, target).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         context.startActivity(i)
