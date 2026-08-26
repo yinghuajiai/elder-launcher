@@ -3,7 +3,7 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F0F4F8">
+    android:background="#F5F0E8">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:textColor="#555555"
-                android:textSize="18sp" />
+                android:textSize="26sp" />
 
             <TextView
                 android:id="@+id/tv_lunar"
@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:textColor="#8A6D3B"
-                android:textSize="16sp" />
+                android:textSize="24sp" />
         </LinearLayout>
 
         <GridView

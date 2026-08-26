@@ -14,6 +14,7 @@ import android.widget.Toast
 import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
+import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.lunar.LunarCalendar
 import java.text.SimpleDateFormat
@@ -102,7 +103,7 @@ class DesktopActivity : BaseActivity() {
 
     private fun reloadAdapter() {
         apps = DesktopApps.list(this).toMutableList()
-        adapter = AppGridAdapter(this, apps)
+        adapter = AppGridAdapter(this, apps, DesktopSettings.showAddTile(this))
         grid.adapter = adapter
     }
 

@@ -59,6 +59,10 @@
     <string name="status_not_granted">未授权</string>
     <string name="status_manual">需手动确认</string>
     <string name="empty_settings">暂无更多设置</string>
+    <string name="setting_show_add_tile">显示「+」添加按钮</string>
+    <string name="setting_show_add_tile_desc">关闭后桌面不显示添加按钮，防止误点</string>
+    <string name="setting_add_app">添加应用</string>
+    <string name="setting_add_app_desc">选择应用添加到桌面</string>
     <string name="back">返回</string>
     <string name="lock_mode_title">锁定模式</string>
     <string name="lock_mode_desc">开启后离开桌面自动拉回</string>

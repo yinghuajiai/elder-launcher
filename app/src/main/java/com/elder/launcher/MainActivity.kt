@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
@@ -247,7 +248,20 @@ class MainActivity : BaseActivity() {
         }
 
     private fun desktopItems(): List<SettingsItem> = listOf(
-        SettingsItem(getString(R.string.empty_settings))
+        SettingsItem(
+            getString(R.string.setting_show_add_tile),
+            getString(R.string.setting_show_add_tile_desc),
+            if (DesktopSettings.showAddTile(this)) getString(R.string.status_on) else getString(R.string.status_off)
+        ) {
+            DesktopSettings.setShowAddTile(this, !DesktopSettings.showAddTile(this))
+            refresh()
+        },
+        SettingsItem(
+            getString(R.string.setting_add_app),
+            getString(R.string.setting_add_app_desc)
+        ) {
+            startActivity(Intent(this, AppPickerActivity::class.java))
+        }
     )
 
     private fun lockItems(): List<SettingsItem> = listOf(
