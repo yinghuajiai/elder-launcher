@@ -56,13 +56,19 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- 声明为桌面(HOME)：设为主屏幕后不可被划掉、按主页即回到本应用 -->
+        </activity>
+
+        <!-- 桌面(HOME)：引导完成后进入的主界面 -->
+        <activity
+            android:name=".DesktopActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />

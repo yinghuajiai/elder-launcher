@@ -1,5 +1,6 @@
 package com.elder.launcher
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
@@ -8,13 +9,29 @@ import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
+import com.elder.launcher.setup.OnboardingState
 
-/** 权限中心：验证"危险权限一键申请 + 特殊权限跳转"框架 */
+/** 首次引导页：确认权限、一键授权，完成后进入桌面 */
 class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 已完成引导 → 直接进入桌面
+        if (OnboardingState.isDone(this)) {
+            startActivity(Intent(this, DesktopActivity::class.java))
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_main)
+
+        // 开始使用：完成引导，进入桌面
+        findViewById<Button>(R.id.btn_start).setOnClickListener {
+            OnboardingState.setDone(this, true)
+            startActivity(Intent(this, DesktopActivity::class.java))
+            finish()
+        }
 
         findViewById<Button>(R.id.btn_all).setOnClickListener {
             requirePermissions(PermissionDef.ALL_RUNTIME) { granted, denied ->

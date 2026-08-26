@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">长辈桌面</string>
-    <string name="title_permission_center">权限中心（Android 6~10）</string>
+    <string name="title_onboarding">欢迎使用长辈桌面</string>
+    <string name="subtitle_onboarding">请先授权所需权限，再开始使用</string>
+    <string name="btn_start">开始使用</string>
     <string name="btn_all_runtime">一键授予全部危险权限</string>
     <string name="btn_storage">存储权限</string>
     <string name="btn_location">定位权限</string>

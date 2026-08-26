@@ -9,8 +9,10 @@ import android.speech.tts.TextToSpeech
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.elder.launcher.DesktopActivity
 import com.elder.launcher.MainActivity
 import com.elder.launcher.keepalive.LockState
+import com.elder.launcher.setup.OnboardingState
 import java.util.Locale
 
 /**
@@ -80,7 +82,8 @@ class ElderAccessibilityService : AccessibilityService() {
         val now = SystemClock.elapsedRealtime()
         if (now - lastRelaunchMs < RELAUNCH_INTERVAL_MS) return
         lastRelaunchMs = now
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val target = if (OnboardingState.isDone(this)) DesktopActivity::class.java else MainActivity::class.java
+        val intent = Intent(this, target).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         }
         try {
