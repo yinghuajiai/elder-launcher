@@ -37,13 +37,17 @@ object PlayerSettings {
             .edit().putString(KEY_ORIENTATION, value).apply()
     }
 
-    /** 单个视频的播放进度记忆（key = 视频 uri）。 */
-    fun savePosition(context: Context, uri: String, positionMs: Long) {
+    /** 单个播放列表的续播记忆（key = 磁贴 payload / 视频 uri）。 */
+    fun resumeIndex(context: Context, key: String): Int =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putLong("pos_$uri", positionMs).apply()
-    }
+            .getInt("idx_$key", 0)
 
-    fun lastPosition(context: Context, uri: String): Long =
+    fun resumePosition(context: Context, key: String): Long =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getLong("pos_$uri", 0L)
+            .getLong("pos_$key", 0L)
+
+    fun saveResume(context: Context, key: String, index: Int, positionMs: Long) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putInt("idx_$key", index).putLong("pos_$key", positionMs).apply()
+    }
 }

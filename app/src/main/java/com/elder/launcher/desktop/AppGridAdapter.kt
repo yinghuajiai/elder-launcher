@@ -21,7 +21,8 @@ class AppGridAdapter(
 
     private val TYPE_APP = 0
     private val TYPE_VIDEO = 1
-    private val TYPE_ADD = 2
+    private val TYPE_PLAYLIST = 2
+    private val TYPE_ADD = 3
 
     override fun getCount(): Int = tiles.size + if (showAddTile) 1 else 0
 
@@ -33,16 +34,20 @@ class AppGridAdapter(
     override fun getItemViewType(position: Int): Int = when {
         showAddTile && position == tiles.size -> TYPE_ADD
         tiles[position].type == TileType.VIDEO -> TYPE_VIDEO
+        tiles[position].type == TileType.PLAYLIST -> TYPE_PLAYLIST
         else -> TYPE_APP
     }
 
-    override fun getViewTypeCount(): Int = 3
+    override fun getViewTypeCount(): Int = 4
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         if (showAddTile && position == tiles.size) return addTile(convertView, parent)
         val tile = tiles[position]
-        return if (tile.type == TileType.VIDEO) videoTile(tile, convertView, parent)
-        else appTile(tile, convertView, parent)
+        return when (tile.type) {
+            TileType.VIDEO -> videoTile(tile, convertView, parent)
+            TileType.PLAYLIST -> playlistTile(tile, convertView, parent)
+            else -> appTile(tile, convertView, parent)
+        }
     }
 
     private fun appTile(tile: DesktopTile, convertView: View?, parent: ViewGroup): View {
@@ -70,6 +75,16 @@ class AppGridAdapter(
         val label = view.findViewById<TextView>(R.id.tv_label)
         icon.setImageResource(R.drawable.ic_video)
         label.text = tile.label.ifEmpty { tile.payload }
+        return view
+    }
+
+    private fun playlistTile(tile: DesktopTile, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context)
+            .inflate(R.layout.item_desktop_app, parent, false)
+        val icon = view.findViewById<ImageView>(R.id.img_icon)
+        val label = view.findViewById<TextView>(R.id.tv_label)
+        icon.setImageResource(R.drawable.ic_playlist)
+        label.text = tile.label
         return view
     }
 

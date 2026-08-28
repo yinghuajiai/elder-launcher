@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -13,22 +14,30 @@ import com.elder.launcher.R
 import com.elder.launcher.base.BaseActivity
 
 /**
- * 视频播放页：用 Media3/ExoPlayer 播放单个视频。
- * 只取播放逻辑，外观简洁（系统控制器 + 返回键）。
+ * 视频播放页：播放一个播放列表（单个视频 = 只有一个成员的列表）。
+ * 一个视频放完自动播下一个；顶部「列表」按钮可跳转任意一集。
  */
 class VideoPlayerActivity : BaseActivity() {
 
     private var player: ExoPlayer? = null
-    private var uri: String = ""
+    private lateinit var playlist: List<VideoEntry>
+    private var currentIndex = 0
+    private var playlistKey = ""
+    private var pendingResumePosition = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_player)
 
-        uri = intent.getStringExtra(EXTRA_URI) ?: ""
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: ""
-        findViewById<TextView>(R.id.tv_video_title).text = title
+        playlistKey = intent.getStringExtra(EXTRA_KEY) ?: ""
+        playlist = Playlist.decode(intent.getStringExtra(EXTRA_PLAYLIST) ?: "[]")
+        if (playlist.isEmpty()) {
+            finish()
+            return
+        }
+
         findViewById<Button>(R.id.btn_back).setOnClickListener { finish() }
+        findViewById<Button>(R.id.btn_playlist).setOnClickListener { showPlaylistDialog() }
 
         applyOrientation()
 
@@ -37,18 +46,61 @@ class VideoPlayerActivity : BaseActivity() {
         playerView.player = exo
         player = exo
 
-        exo.setMediaItem(MediaItem.fromUri(Uri.parse(uri)))
         exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
-                // 准备好后按需续播
-                if (state == Player.STATE_READY && PlayerSettings.resumeEnabled(this@VideoPlayerActivity)) {
-                    val pos = PlayerSettings.lastPosition(this@VideoPlayerActivity, uri)
-                    if (pos > 1000) exo.seekTo(pos)
+                if (state == Player.STATE_READY) {
+                    if (pendingResumePosition > 1000) {
+                        exo.seekTo(pendingResumePosition)
+                        pendingResumePosition = 0L
+                    }
+                } else if (state == Player.STATE_ENDED) {
+                    playNext()
                 }
             }
         })
-        exo.prepare()
+
+        // 记忆播放进度：恢复上次的集数与位置
+        var startIndex = 0
+        if (PlayerSettings.resumeEnabled(this)) {
+            startIndex = PlayerSettings.resumeIndex(this, playlistKey).coerceIn(0, playlist.size - 1)
+            pendingResumePosition = PlayerSettings.resumePosition(this, playlistKey)
+        }
+        playItem(startIndex)
         exo.playWhenReady = true
+    }
+
+    private fun playItem(index: Int) {
+        val exo = player ?: return
+        if (index !in playlist.indices) {
+            finish()
+            return
+        }
+        currentIndex = index
+        exo.setMediaItem(MediaItem.fromUri(Uri.parse(playlist[index].uri)))
+        exo.prepare()
+        findViewById<TextView>(R.id.tv_video_title).text = playlist[index].name
+    }
+
+    private fun playNext() {
+        if (currentIndex + 1 < playlist.size) {
+            playItem(currentIndex + 1)
+        } else {
+            finish()
+        }
+    }
+
+    private fun showPlaylistDialog() {
+        val names = playlist.mapIndexed { i, e ->
+            e.name.ifEmpty { getString(R.string.playlist_unnamed, i + 1) }
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.playlist_title))
+            .setSingleChoiceItems(names, currentIndex) { d, which ->
+                playItem(which)
+                d.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun applyOrientation() {
@@ -61,9 +113,8 @@ class VideoPlayerActivity : BaseActivity() {
 
     override fun onStop() {
         val exo = player
-        if (exo != null && uri.isNotEmpty() && PlayerSettings.resumeEnabled(this)) {
-            val pos = exo.currentPosition.coerceAtLeast(0)
-            PlayerSettings.savePosition(this, uri, pos)
+        if (exo != null && playlistKey.isNotEmpty() && PlayerSettings.resumeEnabled(this)) {
+            PlayerSettings.saveResume(this, playlistKey, currentIndex, exo.currentPosition.coerceAtLeast(0))
         }
         exo?.release()
         player = null
@@ -71,7 +122,7 @@ class VideoPlayerActivity : BaseActivity() {
     }
 
     companion object {
-        const val EXTRA_URI = "video_uri"
-        const val EXTRA_TITLE = "video_title"
+        const val EXTRA_KEY = "playlist_key"
+        const val EXTRA_PLAYLIST = "playlist_json"
     }
 }

@@ -1,6 +1,8 @@
 package com.elder.launcher.desktop
 
 import android.content.Context
+import com.elder.launcher.player.Playlist
+import com.elder.launcher.player.VideoEntry
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -50,6 +52,13 @@ object DesktopApps {
         val current = list(context)
         if (current.any { it.type == TileType.VIDEO && it.payload == uri }) return
         persist(context, current + DesktopTile.video(uri, label))
+    }
+
+    fun addPlaylist(context: Context, entries: List<VideoEntry>, label: String) {
+        val payload = Playlist.encode(entries)
+        val current = list(context)
+        if (current.any { it.type == TileType.PLAYLIST && it.payload == payload }) return
+        persist(context, current + DesktopTile.playlist(payload, label))
     }
 
     fun containsPkg(context: Context, pkg: String): Boolean =

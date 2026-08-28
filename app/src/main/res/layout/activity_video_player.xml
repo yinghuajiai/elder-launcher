@@ -40,5 +40,14 @@
             android:maxLines="1"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btn_playlist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:text="@string/btn_playlist"
+            android:textSize="14sp" />
     </LinearLayout>
 </FrameLayout>

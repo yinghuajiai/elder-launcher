@@ -43,8 +43,8 @@ class VideoLibraryActivity : BaseActivity() {
             val v = videos[position]
             startActivity(
                 Intent(this, VideoPlayerActivity::class.java)
-                    .putExtra(VideoPlayerActivity.EXTRA_URI, v.uri)
-                    .putExtra(VideoPlayerActivity.EXTRA_TITLE, v.title)
+                    .putExtra(VideoPlayerActivity.EXTRA_KEY, v.uri)
+                    .putExtra(VideoPlayerActivity.EXTRA_PLAYLIST, Playlist.encode(listOf(VideoEntry(v.uri, v.title))))
             )
         }
 

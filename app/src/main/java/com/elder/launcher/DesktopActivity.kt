@@ -22,6 +22,8 @@ import com.elder.launcher.desktop.DesktopTile
 import com.elder.launcher.desktop.TileType
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.lunar.LunarCalendar
+import com.elder.launcher.player.Playlist
+import com.elder.launcher.player.VideoEntry
 import com.elder.launcher.player.VideoPlayerActivity
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -113,14 +115,17 @@ class DesktopActivity : BaseActivity() {
     private fun openTile(tile: DesktopTile) {
         when (tile.type) {
             TileType.APP -> openApp(tile.payload)
-            TileType.VIDEO -> {
-                startActivity(
-                    Intent(this, VideoPlayerActivity::class.java)
-                        .putExtra(VideoPlayerActivity.EXTRA_URI, tile.payload)
-                        .putExtra(VideoPlayerActivity.EXTRA_TITLE, tile.label)
-                )
-            }
+            TileType.VIDEO -> startPlayer(listOf(VideoEntry(tile.payload, tile.label)), tile.payload)
+            TileType.PLAYLIST -> startPlayer(Playlist.decode(tile.payload), tile.payload)
         }
+    }
+
+    private fun startPlayer(entries: List<VideoEntry>, key: String) {
+        startActivity(
+            Intent(this, VideoPlayerActivity::class.java)
+                .putExtra(VideoPlayerActivity.EXTRA_KEY, key)
+                .putExtra(VideoPlayerActivity.EXTRA_PLAYLIST, Playlist.encode(entries))
+        )
     }
 
     private fun openApp(pkg: String) {
@@ -154,6 +159,7 @@ class DesktopActivity : BaseActivity() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "video/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
         try {
             startActivityForResult(intent, REQ_PICK_VIDEO)
@@ -167,14 +173,33 @@ class DesktopActivity : BaseActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQ_PICK_VIDEO) return
         if (resultCode != RESULT_OK) return
-        val uri = data?.data ?: return
-        try {
-            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        } catch (_: Exception) {
+
+        val uris = mutableListOf<Uri>()
+        val clip = data?.clipData
+        if (clip != null) {
+            for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+        } else {
+            data?.data?.let { uris.add(it) }
         }
-        val name = queryDisplayName(uri)
-        DesktopApps.addVideo(this, uri.toString(), name)
+        if (uris.isEmpty()) return
+
+        val entries = mutableListOf<VideoEntry>()
+        for (u in uris) {
+            try {
+                contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) {
+            }
+            entries.add(VideoEntry(u.toString(), queryDisplayName(u)))
+        }
+        DesktopApps.addPlaylist(this, entries, buildPlaylistLabel(entries))
         reloadAdapter()
+    }
+
+    private fun buildPlaylistLabel(entries: List<VideoEntry>): String {
+        if (entries.isEmpty()) return ""
+        val first = entries.first().name.ifEmpty { getString(R.string.playlist_unnamed, 1) }
+        return if (entries.size == 1) first
+        else getString(R.string.playlist_label_many, first, entries.size)
     }
 
     private fun queryDisplayName(uri: Uri): String = try {
