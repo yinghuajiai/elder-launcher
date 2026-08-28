@@ -12,7 +12,16 @@
         app:use_controller="true"
         app:show_buffering="when_playing" />
 
+    <!-- 锁定时的触摸层：拦截点按（双击暂停/播放，单击唤出控制） -->
+    <View
+        android:id="@+id/touch_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- 顶部：返回 + 标题 + 列表（跟随控制器显隐） -->
     <LinearLayout
+        android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
@@ -51,8 +60,9 @@
             android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- 右下角：旋转 + 锁定（位于进度条上方） -->
+    <!-- 右下角：旋转 + 锁定（位于进度条上方，跟随控制器显隐） -->
     <LinearLayout
+        android:id="@+id/bottom_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
