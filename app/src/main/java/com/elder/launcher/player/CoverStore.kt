@@ -40,8 +40,8 @@ object CoverStore {
     fun importImage(context: Context, uri: Uri): String? = try {
         val bmp = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
-        } ?: return null
-        save(context, scale(bmp))
+        }
+        if (bmp == null) null else save(context, scale(bmp))
     } catch (_: Exception) {
         null
     }
