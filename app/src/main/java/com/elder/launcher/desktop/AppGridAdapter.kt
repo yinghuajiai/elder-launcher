@@ -15,13 +15,14 @@ import com.elder.launcher.R
  */
 class AppGridAdapter(
     private val context: Context,
-    private val apps: MutableList<String>
+    private val apps: MutableList<String>,
+    private val showAddTile: Boolean = true
 ) : BaseAdapter() {
 
     private val TYPE_APP = 0
     private val TYPE_ADD = 1
 
-    override fun getCount(): Int = apps.size + 1
+    override fun getCount(): Int = apps.size + if (showAddTile) 1 else 0
 
     override fun getItem(position: Int): Any? =
         if (position < apps.size) apps[position] else null
@@ -29,12 +30,12 @@ class AppGridAdapter(
     override fun getItemId(position: Int): Long = position.toLong()
 
     override fun getItemViewType(position: Int): Int =
-        if (position == apps.size) TYPE_ADD else TYPE_APP
+        if (showAddTile && position == apps.size) TYPE_ADD else TYPE_APP
 
     override fun getViewTypeCount(): Int = 2
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        if (position == apps.size) return addTile(convertView, parent)
+        if (showAddTile && position == apps.size) return addTile(convertView, parent)
         return appTile(position, convertView, parent)
     }
 

@@ -1,6 +1,7 @@
 package com.elder.launcher
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,8 +11,10 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
@@ -247,7 +250,20 @@ class MainActivity : BaseActivity() {
         }
 
     private fun desktopItems(): List<SettingsItem> = listOf(
-        SettingsItem(getString(R.string.empty_settings))
+        SettingsItem(
+            getString(R.string.setting_show_add_tile),
+            getString(R.string.setting_show_add_tile_desc),
+            if (DesktopSettings.showAddTile(this)) getString(R.string.status_on) else getString(R.string.status_off)
+        ) {
+            DesktopSettings.setShowAddTile(this, !DesktopSettings.showAddTile(this))
+            refresh()
+        },
+        SettingsItem(
+            getString(R.string.setting_add_app),
+            getString(R.string.setting_add_app_desc)
+        ) {
+            startActivity(Intent(this, AppPickerActivity::class.java))
+        }
     )
 
     private fun lockItems(): List<SettingsItem> = listOf(
@@ -260,7 +276,11 @@ class MainActivity : BaseActivity() {
 
     private fun aboutItems(): List<SettingsItem> = listOf(
         SettingsItem(getString(R.string.about_app), "", getString(R.string.app_name)),
-        SettingsItem(getString(R.string.about_version), "", appVersion())
+        SettingsItem(getString(R.string.about_version), "", appVersion()),
+        SettingsItem(getString(R.string.about_github), getString(R.string.about_github_url)) {
+            openUrl(getString(R.string.about_github_url))
+        },
+        SettingsItem(getString(R.string.about_license), "", "AGPL-3.0") { showLicense() }
     )
 
     // ==================== 动作 ====================
@@ -285,6 +305,22 @@ class MainActivity : BaseActivity() {
         } catch (_: Exception) {
             ""
         }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            toast("无法打开链接")
+        }
+    }
+
+    private fun showLicense() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.license_title))
+            .setMessage(getString(R.string.license_summary))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
