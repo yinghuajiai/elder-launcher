@@ -83,6 +83,18 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- 视频播放：旋转不重建，保证播放不中断 -->
+        <activity
+            android:name=".player.VideoPlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- 播放器主页：本机视频库 -->
+        <activity
+            android:name=".player.VideoLibraryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <!-- 无障碍服务：通知朗读 + 点读 + 前台应用监听 -->
         <service
             android:name=".accessibility.ElderAccessibilityService"
