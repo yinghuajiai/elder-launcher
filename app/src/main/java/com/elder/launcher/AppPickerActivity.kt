@@ -55,16 +55,6 @@ class AppPickerActivity : BaseActivity() {
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
         })
 
-        // 输入框获得焦点时收起索引条，避免被键盘顶起
-        searchInput.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                indexBar.visibility = View.GONE
-                bubble.visibility = View.GONE
-            } else if (searchInput.text.isEmpty()) {
-                indexBar.visibility = View.VISIBLE
-            }
-        }
-
         listView.setOnItemClickListener { _, _, position, _ ->
             val info = adapter.getItem(position) as ResolveInfo
             val pkg = info.activityInfo.packageName
@@ -126,7 +116,7 @@ class AppPickerActivity : BaseActivity() {
         val q = query.trim()
         if (q.isEmpty()) {
             adapter.submit(allApps)
-            if (!searchInput.hasFocus()) indexBar.visibility = View.VISIBLE
+            indexBar.visibility = View.VISIBLE
         } else {
             indexBar.visibility = View.GONE
             val filtered = allApps.filter {
