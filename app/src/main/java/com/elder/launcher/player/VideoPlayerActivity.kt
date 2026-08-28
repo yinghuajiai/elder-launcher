@@ -111,9 +111,9 @@ class VideoPlayerActivity : BaseActivity() {
         })
 
         // 自定义控件跟随 Media3 控制器显隐（未锁定时）
-        playerView.setControllerVisibilityListener { visibility ->
+        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             if (!locked) setControlsVisible(visibility == View.VISIBLE)
-        }
+        })
 
         var startIndex = 0
         if (PlayerSettings.resumeEnabled(this)) {
