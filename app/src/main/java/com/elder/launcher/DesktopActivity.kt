@@ -28,6 +28,7 @@ import com.elder.launcher.desktop.DesktopTile
 import com.elder.launcher.desktop.TileType
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.lunar.LunarCalendar
+import com.elder.launcher.player.CoverStore
 import com.elder.launcher.player.Playlist
 import com.elder.launcher.player.VideoEntry
 import com.elder.launcher.player.VideoPlayerActivity
@@ -50,6 +51,7 @@ class DesktopActivity : BaseActivity() {
     private var dragIndex = -1
     private var dragTarget = -1
     private var deleteZoneActive = false
+    private var pendingCoverEntries: List<VideoEntry>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,6 +183,7 @@ class DesktopActivity : BaseActivity() {
             Intent(this, VideoPlayerActivity::class.java)
                 .putExtra(VideoPlayerActivity.EXTRA_KEY, key)
                 .putExtra(VideoPlayerActivity.EXTRA_PLAYLIST, Playlist.encode(entries))
+                .putExtra(VideoPlayerActivity.EXTRA_FROM_TILE, true)
         )
     }
 
@@ -227,6 +230,22 @@ class DesktopActivity : BaseActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_PICK_COVER) {
+            val entries = pendingCoverEntries
+            pendingCoverEntries = null
+            if (resultCode == RESULT_OK && entries != null) {
+                val uri = data?.data
+                if (uri != null) {
+                    Thread {
+                        val cover = CoverStore.importImage(this, uri) ?: ""
+                        runOnUiThread { addPlaylist(entries, cover) }
+                    }.start()
+                    return
+                }
+            }
+            if (entries != null) addPlaylist(entries, "")
+            return
+        }
         if (requestCode != REQ_PICK_VIDEO) return
         if (resultCode != RESULT_OK) return
 
@@ -247,7 +266,49 @@ class DesktopActivity : BaseActivity() {
             }
             entries.add(VideoEntry(u.toString(), queryDisplayName(u)))
         }
-        DesktopApps.addPlaylist(this, entries, buildPlaylistLabel(entries))
+        promptCover(entries)
+    }
+
+    private fun promptCover(entries: List<VideoEntry>) {
+        val options = arrayOf(
+            getString(R.string.cover_auto),
+            getString(R.string.cover_pick),
+            getString(R.string.cover_default)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.cover_title))
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        val uri = Uri.parse(entries.first().uri)
+                        Thread {
+                            val cover = CoverStore.captureFromVideo(this, uri) ?: ""
+                            runOnUiThread { addPlaylist(entries, cover) }
+                        }.start()
+                    }
+                    1 -> pickCoverImage(entries)
+                    else -> addPlaylist(entries, "")
+                }
+            }
+            .show()
+    }
+
+    private fun pickCoverImage(entries: List<VideoEntry>) {
+        pendingCoverEntries = entries
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+        }
+        try {
+            startActivityForResult(intent, REQ_PICK_COVER)
+        } catch (_: Exception) {
+            pendingCoverEntries = null
+            addPlaylist(entries, "")
+        }
+    }
+
+    private fun addPlaylist(entries: List<VideoEntry>, cover: String) {
+        DesktopApps.addPlaylist(this, entries, buildPlaylistLabel(entries), cover)
         reloadAdapter()
     }
 
@@ -362,5 +423,6 @@ class DesktopActivity : BaseActivity() {
 
     companion object {
         private const val REQ_PICK_VIDEO = 100
+        private const val REQ_PICK_COVER = 101
     }
 }

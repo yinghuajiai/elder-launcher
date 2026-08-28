@@ -27,7 +27,8 @@ object DesktopApps {
                     DesktopTile(
                         TileType.valueOf(o.getString("t")),
                         o.getString("p"),
-                        o.optString("l", "")
+                        o.optString("l", ""),
+                        o.optString("c", "")
                     )
                 }
             } catch (_: Exception) {
@@ -54,11 +55,19 @@ object DesktopApps {
         persist(context, current + DesktopTile.video(uri, label))
     }
 
-    fun addPlaylist(context: Context, entries: List<VideoEntry>, label: String) {
+    fun addPlaylist(context: Context, entries: List<VideoEntry>, label: String, cover: String = "") {
         val payload = Playlist.encode(entries)
         val current = list(context)
         if (current.any { it.type == TileType.PLAYLIST && it.payload == payload }) return
-        persist(context, current + DesktopTile.playlist(payload, label))
+        persist(context, current + DesktopTile.playlist(payload, label, cover))
+    }
+
+    /** 更新指定磁贴（按 payload 匹配）的封面。 */
+    fun updateCover(context: Context, payload: String, cover: String) {
+        val updated = list(context).map {
+            if (it.payload == payload) it.copy(cover = cover) else it
+        }
+        replace(context, updated)
     }
 
     fun containsPkg(context: Context, pkg: String): Boolean =
@@ -78,7 +87,7 @@ object DesktopApps {
     private fun encode(tiles: List<DesktopTile>): String {
         val arr = JSONArray()
         for (t in tiles) {
-            arr.put(JSONObject().put("t", t.type.name).put("p", t.payload).put("l", t.label))
+            arr.put(JSONObject().put("t", t.type.name).put("p", t.payload).put("l", t.label).put("c", t.cover))
         }
         return arr.toString()
     }

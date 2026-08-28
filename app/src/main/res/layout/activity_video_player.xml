@@ -51,6 +51,16 @@
             android:textSize="16sp" />
 
         <Button
+            android:id="@+id/btn_cover"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:text="@string/btn_cover"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <Button
             android:id="@+id/btn_playlist"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -108,6 +108,11 @@
     <string name="btn_rotate">旋转</string>
     <string name="btn_video_lock">锁定</string>
     <string name="btn_video_unlock">解锁</string>
+    <string name="btn_cover">封面</string>
+    <string name="cover_title">设置封面</string>
+    <string name="cover_auto">自动截取视频画面</string>
+    <string name="cover_pick">从图库选一张图片</string>
+    <string name="cover_default">用默认图标</string>
 
     <!-- 时钟设置 -->
     <string name="clock_mode">时钟样式</string>

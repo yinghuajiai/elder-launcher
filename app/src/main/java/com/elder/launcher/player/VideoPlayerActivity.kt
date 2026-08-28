@@ -1,5 +1,6 @@
 package com.elder.launcher.player
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -20,6 +22,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.elder.launcher.R
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.DesktopApps
 
 /**
  * 视频播放页：播放一个播放列表，一个视频放完自动播下一个。
@@ -35,6 +38,7 @@ class VideoPlayerActivity : BaseActivity() {
     private var pendingResumePosition = 0L
     private var locked = false
     private var manualOrientation = false
+    private var systemBarsVisible = true
 
     private lateinit var playerView: PlayerView
     private lateinit var topBar: LinearLayout
@@ -68,6 +72,11 @@ class VideoPlayerActivity : BaseActivity() {
         findViewById<Button>(R.id.btn_playlist).setOnClickListener { showPlaylistDialog() }
         findViewById<Button>(R.id.btn_rotate).setOnClickListener { rotateManually() }
         btnLock.setOnClickListener { toggleLock() }
+
+        val fromTile = intent.getBooleanExtra(EXTRA_FROM_TILE, false)
+        val btnCover = findViewById<Button>(R.id.btn_cover)
+        btnCover.visibility = if (fromTile) View.VISIBLE else View.GONE
+        btnCover.setOnClickListener { showCoverDialog() }
 
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -128,6 +137,26 @@ class VideoPlayerActivity : BaseActivity() {
         val v = if (visible) View.VISIBLE else View.GONE
         topBar.visibility = v
         bottomBar.visibility = v
+        setSystemBarsVisible(visible)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun setSystemBarsVisible(visible: Boolean) {
+        systemBarsVisible = visible
+        window.decorView.systemUiVisibility = if (visible) {
+            View.SYSTEM_UI_FLAG_VISIBLE
+        } else {
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) setSystemBarsVisible(systemBarsVisible)
     }
 
     private fun showLockControls() {
@@ -213,6 +242,62 @@ class VideoPlayerActivity : BaseActivity() {
             .show()
     }
 
+    private fun showCoverDialog() {
+        val options = arrayOf(
+            getString(R.string.cover_auto),
+            getString(R.string.cover_pick),
+            getString(R.string.cover_default)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.cover_title))
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> captureCurrentCover()
+                    1 -> pickCoverImage()
+                    else -> applyCover("")
+                }
+            }
+            .show()
+    }
+
+    private fun captureCurrentCover() {
+        val uri = Uri.parse(playlist[currentIndex].uri)
+        Thread {
+            val cover = CoverStore.captureFromVideo(this, uri) ?: ""
+            runOnUiThread { applyCover(cover) }
+        }.start()
+    }
+
+    private fun pickCoverImage() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+        }
+        try {
+            startActivityForResult(intent, REQ_PICK_COVER)
+        } catch (_: Exception) {
+            toast("无法打开图片选择器")
+        }
+    }
+
+    private fun applyCover(cover: String) {
+        DesktopApps.updateCover(this, playlistKey, cover)
+        toast(if (cover.isEmpty()) "已用默认图标" else "封面已更新")
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_COVER || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        Thread {
+            val cover = CoverStore.importImage(this, uri) ?: ""
+            runOnUiThread { applyCover(cover) }
+        }.start()
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
     override fun onStop() {
         val exo = player
         if (exo != null && playlistKey.isNotEmpty() && PlayerSettings.resumeEnabled(this)) {
@@ -226,5 +311,7 @@ class VideoPlayerActivity : BaseActivity() {
     companion object {
         const val EXTRA_KEY = "playlist_key"
         const val EXTRA_PLAYLIST = "playlist_json"
+        const val EXTRA_FROM_TILE = "from_tile"
+        private const val REQ_PICK_COVER = 200
     }
 }

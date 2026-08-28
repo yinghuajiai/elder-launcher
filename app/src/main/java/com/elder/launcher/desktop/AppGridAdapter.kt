@@ -1,6 +1,8 @@
 package com.elder.launcher.desktop
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +10,7 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import com.elder.launcher.R
+import com.elder.launcher.player.CoverStore
 
 /**
  * 桌面磁贴网格适配器：展示已添加的应用 + 视频磁贴，末尾一个「添加」磁贴。
@@ -73,7 +76,7 @@ class AppGridAdapter(
             .inflate(R.layout.item_desktop_app, parent, false)
         val icon = view.findViewById<ImageView>(R.id.img_icon)
         val label = view.findViewById<TextView>(R.id.tv_label)
-        icon.setImageResource(R.drawable.ic_video)
+        setTileIcon(icon, R.drawable.ic_video, tile.cover)
         label.text = tile.label.ifEmpty { tile.payload }
         return view
     }
@@ -83,9 +86,40 @@ class AppGridAdapter(
             .inflate(R.layout.item_desktop_app, parent, false)
         val icon = view.findViewById<ImageView>(R.id.img_icon)
         val label = view.findViewById<TextView>(R.id.tv_label)
-        icon.setImageResource(R.drawable.ic_playlist)
+        setTileIcon(icon, R.drawable.ic_playlist, tile.cover)
         label.text = tile.label
         return view
+    }
+
+    private val coverCache = LruCache<String, Bitmap>(16)
+
+    private fun setTileIcon(icon: ImageView, defaultRes: Int, coverPath: String) {
+        if (coverPath.isEmpty()) {
+            icon.tag = null
+            icon.scaleType = ImageView.ScaleType.FIT_CENTER
+            icon.setImageResource(defaultRes)
+            return
+        }
+        val cached = coverCache.get(coverPath)
+        if (cached != null) {
+            icon.scaleType = ImageView.ScaleType.CENTER_CROP
+            icon.setImageBitmap(cached)
+            return
+        }
+        icon.tag = coverPath
+        icon.setImageResource(defaultRes)
+        Thread {
+            val bmp = CoverStore.load(coverPath)
+            if (bmp != null) coverCache.put(coverPath, bmp)
+            icon.post {
+                if (icon.tag == coverPath) {
+                    if (bmp != null) {
+                        icon.scaleType = ImageView.ScaleType.CENTER_CROP
+                        icon.setImageBitmap(bmp)
+                    }
+                }
+            }
+        }.start()
     }
 
     private fun addTile(convertView: View?, parent: ViewGroup): View =

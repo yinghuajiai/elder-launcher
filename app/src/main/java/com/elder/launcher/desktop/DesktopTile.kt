@@ -11,11 +11,13 @@ enum class TileType { APP, VIDEO, PLAYLIST }
 data class DesktopTile(
     val type: TileType,
     val payload: String,
-    val label: String = ""
+    val label: String = "",
+    val cover: String = ""
 ) {
     companion object {
         fun app(pkg: String) = DesktopTile(TileType.APP, pkg)
-        fun video(uri: String, label: String = "") = DesktopTile(TileType.VIDEO, uri, label)
-        fun playlist(payload: String, label: String) = DesktopTile(TileType.PLAYLIST, payload, label)
+        fun video(uri: String, label: String = "", cover: String = "") = DesktopTile(TileType.VIDEO, uri, label, cover)
+        fun playlist(payload: String, label: String, cover: String = "") =
+            DesktopTile(TileType.PLAYLIST, payload, label, cover)
     }
 }
