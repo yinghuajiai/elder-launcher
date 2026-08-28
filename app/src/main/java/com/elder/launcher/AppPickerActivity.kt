@@ -58,10 +58,10 @@ class AppPickerActivity : BaseActivity() {
         listView.setOnItemClickListener { _, _, position, _ ->
             val info = adapter.getItem(position) as ResolveInfo
             val pkg = info.activityInfo.packageName
-            if (DesktopApps.list(this).contains(pkg)) {
+            if (DesktopApps.containsPkg(this, pkg)) {
                 Toast.makeText(this, "该应用已在桌面", Toast.LENGTH_SHORT).show()
             } else {
-                DesktopApps.add(this, pkg)
+                DesktopApps.addApp(this, pkg)
                 finish()
             }
         }

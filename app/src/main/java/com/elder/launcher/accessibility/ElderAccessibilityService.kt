@@ -85,7 +85,7 @@ class ElderAccessibilityService : AccessibilityService() {
         if (pkg.isNullOrEmpty()) return
         if (pkg == packageName) return
         if (pkg == "android" || SKIP_PACKAGES.any { pkg.startsWith(it) }) return
-        if (DesktopApps.list(this).contains(pkg)) return
+        if (DesktopApps.containsPkg(this, pkg)) return
         if (isInputMethod(pkg)) return
         val now = SystemClock.elapsedRealtime()
         if (now - lastRelaunchMs < RELAUNCH_INTERVAL_MS) return

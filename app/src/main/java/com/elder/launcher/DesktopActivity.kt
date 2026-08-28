@@ -1,9 +1,12 @@
 package com.elder.launcher
 
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.DragEvent
 import android.view.View
 import android.widget.AdapterView
@@ -15,22 +18,25 @@ import com.elder.launcher.base.BaseActivity
 import com.elder.launcher.desktop.AppGridAdapter
 import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.desktop.DesktopSettings
+import com.elder.launcher.desktop.DesktopTile
+import com.elder.launcher.desktop.TileType
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.lunar.LunarCalendar
+import com.elder.launcher.player.VideoPlayerActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * 基础桌面（HOME）：固定时钟 + 应用图标网格 + 设置/退出入口。
- * 点击应用图标启动对应应用；长按图标开始拖动——
- * 拖到别处松开即排序，拖到底部「删除区」松开即从桌面移除。
+ * 基础桌面（HOME）：固定时钟 + 磁贴网格（应用/视频）+ 设置/退出入口。
+ * 点击磁贴启动应用或播放视频；长按拖动排序 / 拖到删除区移除。
+ * 「+」可选择添加应用或视频。
  */
 class DesktopActivity : BaseActivity() {
 
     private lateinit var grid: GridView
     private lateinit var adapter: AppGridAdapter
-    private lateinit var apps: MutableList<String>
+    private lateinit var tiles: MutableList<DesktopTile>
     private lateinit var deleteZone: TextView
 
     private var dragIndex = -1
@@ -47,33 +53,29 @@ class DesktopActivity : BaseActivity() {
         deleteZone = findViewById(R.id.tv_delete_zone)
 
         grid.setOnItemClickListener { _, _, position, _ ->
-            if (position == apps.size) {
-                startActivity(Intent(this, AppPickerActivity::class.java))
+            if (position == tiles.size) {
+                showAddDialog()
             } else {
-                openApp(apps[position])
+                openTile(tiles[position])
             }
         }
 
-        // 长按图标：显示删除区并开始拖动
         grid.setOnItemLongClickListener { _, view, position, _ ->
-            if (position !in apps.indices) return@setOnItemLongClickListener false
+            if (position !in tiles.indices) return@setOnItemLongClickListener false
             startDrag(view, position)
             true
         }
 
         grid.setOnDragListener { _, event -> handleGridDrag(event) }
         deleteZone.setOnDragListener { _, event -> handleDeleteZoneDrag(event) }
-        // 根布局作为兜底：手指拖到空白/时钟等非目标区域松开时，也要完成清理
         findViewById<View>(R.id.root).setOnDragListener { _, event -> handleRootDrag(event) }
 
-        // 设置入口：进入应用自身设置页
         findViewById<Button>(R.id.btn_settings).setOnClickListener {
             val i = Intent(this, MainActivity::class.java)
             i.putExtra(MainActivity.EXTRA_AS_SETTINGS, true)
             startActivity(i)
         }
 
-        // 退出锁定：长按切换
         findViewById<Button>(R.id.btn_exit_lock).setOnLongClickListener {
             val next = !LockState.lockEnabled(this)
             LockState.setLockEnabled(this, next)
@@ -94,7 +96,6 @@ class DesktopActivity : BaseActivity() {
         refreshExitButton()
     }
 
-    /** 更新公历日期与农历日期显示。 */
     private fun updateDateTime() {
         findViewById<TextView>(R.id.tv_date).text =
             SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
@@ -102,9 +103,87 @@ class DesktopActivity : BaseActivity() {
     }
 
     private fun reloadAdapter() {
-        apps = DesktopApps.list(this).toMutableList()
-        adapter = AppGridAdapter(this, apps, DesktopSettings.showAddTile(this))
+        tiles = DesktopApps.list(this).toMutableList()
+        adapter = AppGridAdapter(this, tiles, DesktopSettings.showAddTile(this))
         grid.adapter = adapter
+    }
+
+    // ==================== 磁贴点击 ====================
+
+    private fun openTile(tile: DesktopTile) {
+        when (tile.type) {
+            TileType.APP -> openApp(tile.payload)
+            TileType.VIDEO -> {
+                startActivity(
+                    Intent(this, VideoPlayerActivity::class.java)
+                        .putExtra(VideoPlayerActivity.EXTRA_URI, tile.payload)
+                        .putExtra(VideoPlayerActivity.EXTRA_TITLE, tile.label)
+                )
+            }
+        }
+    }
+
+    private fun openApp(pkg: String) {
+        val intent = packageManager.getLaunchIntentForPackage(pkg)
+        if (intent != null) {
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "无法打开该应用", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ==================== 添加 ====================
+
+    private fun showAddDialog() {
+        val options = arrayOf(
+            getString(R.string.add_app),
+            getString(R.string.add_video)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add_dialog_title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> startActivity(Intent(this, AppPickerActivity::class.java))
+                    1 -> pickVideo()
+                }
+            }
+            .show()
+    }
+
+    private fun pickVideo() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*"
+        }
+        try {
+            startActivityForResult(intent, REQ_PICK_VIDEO)
+        } catch (_: Exception) {
+            Toast.makeText(this, "无法打开文件选择器", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_VIDEO) return
+        if (resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: Exception) {
+        }
+        val name = queryDisplayName(uri)
+        DesktopApps.addVideo(this, uri.toString(), name)
+        reloadAdapter()
+    }
+
+    private fun queryDisplayName(uri: Uri): String = try {
+        contentResolver.query(uri, null, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && c.moveToFirst()) c.getString(idx) ?: "" else ""
+        } ?: ""
+    } catch (_: Exception) {
+        ""
     }
 
     // ==================== 拖动 ====================
@@ -127,7 +206,7 @@ class DesktopActivity : BaseActivity() {
         when (event.action) {
             DragEvent.ACTION_DRAG_LOCATION -> {
                 val pos = grid.pointToPosition(event.x.toInt(), event.y.toInt())
-                if (pos != AdapterView.INVALID_POSITION && pos < apps.size) {
+                if (pos != AdapterView.INVALID_POSITION && pos < tiles.size) {
                     dragTarget = pos
                 }
             }
@@ -141,7 +220,7 @@ class DesktopActivity : BaseActivity() {
         when (event.action) {
             DragEvent.ACTION_DRAG_ENTERED -> setDeleteZoneActive(true)
             DragEvent.ACTION_DRAG_EXITED -> setDeleteZoneActive(false)
-            DragEvent.ACTION_DROP -> deleteDraggedApp()
+            DragEvent.ACTION_DROP -> deleteDraggedTile()
             DragEvent.ACTION_DRAG_ENDED -> cleanupDrag()
         }
         return true
@@ -154,21 +233,19 @@ class DesktopActivity : BaseActivity() {
         return true
     }
 
-    /** 拖到网格其它位置落下：移动到目标位置并保存。 */
     private fun finishDrag() {
-        if (dragIndex in apps.indices && dragTarget in apps.indices && dragIndex != dragTarget) {
-            val moved = apps.removeAt(dragIndex)
-            apps.add(dragTarget, moved)
-            DesktopApps.replace(this, apps)
+        if (dragIndex in tiles.indices && dragTarget in tiles.indices && dragIndex != dragTarget) {
+            val moved = tiles.removeAt(dragIndex)
+            tiles.add(dragTarget, moved)
+            DesktopApps.replace(this, tiles)
         }
         cleanupDrag()
     }
 
-    /** 拖到删除区落下：从桌面移除。 */
-    private fun deleteDraggedApp() {
-        if (dragIndex in apps.indices) {
-            apps.removeAt(dragIndex)
-            DesktopApps.replace(this, apps)
+    private fun deleteDraggedTile() {
+        if (dragIndex in tiles.indices) {
+            tiles.removeAt(dragIndex)
+            DesktopApps.replace(this, tiles)
             toast(getString(R.string.toast_removed))
         }
         cleanupDrag()
@@ -191,25 +268,18 @@ class DesktopActivity : BaseActivity() {
         deleteZone.text = getString(if (active) R.string.delete_zone_active else R.string.delete_zone)
     }
 
-    // ==================== 其它 ====================
-
     private fun refreshExitButton() {
         findViewById<Button>(R.id.btn_exit_lock).text =
             if (LockState.lockEnabled(this)) getString(R.string.btn_exit_lock) else getString(R.string.btn_lock)
-    }
-
-    private fun openApp(pkg: String) {
-        val intent = packageManager.getLaunchIntentForPackage(pkg)
-        if (intent != null) {
-            startActivity(intent)
-        } else {
-            Toast.makeText(this, "无法打开该应用", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     override fun onBackPressed() {
         // 桌面作为主页，不响应返回键
+    }
+
+    companion object {
+        private const val REQ_PICK_VIDEO = 100
     }
 }

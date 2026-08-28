@@ -82,4 +82,23 @@
     <string name="item_tap_read">点读模式</string>
     <string name="toast_all_granted">全部权限已授予</string>
     <string name="toast_all_failed">仍有权限未授予</string>
+
+    <!-- 桌面磁贴：添加 / 视频 -->
+    <string name="add_dialog_title">添加</string>
+    <string name="add_app">添加应用</string>
+    <string name="add_video">添加视频</string>
+
+    <!-- 播放器 -->
+    <string name="parent_player">播放器</string>
+    <string name="parent_player_sub">播放设置与视频库</string>
+    <string name="player_resume">记忆播放进度</string>
+    <string name="player_resume_desc">再次打开同一视频时从上次位置继续</string>
+    <string name="player_orientation">播放方向</string>
+    <string name="player_orientation_auto">自动旋转</string>
+    <string name="player_orientation_landscape">强制横屏</string>
+    <string name="player_orientation_portrait">强制竖屏</string>
+    <string name="open_video_library">打开视频库</string>
+    <string name="open_video_library_desc">浏览本机视频并播放</string>
+    <string name="title_video_library">视频库</string>
+    <string name="video_library_empty">本机没有找到视频</string>
 </resources>

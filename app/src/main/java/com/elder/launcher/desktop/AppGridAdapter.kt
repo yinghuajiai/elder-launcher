@@ -10,49 +10,66 @@ import android.widget.TextView
 import com.elder.launcher.R
 
 /**
- * 桌面应用网格适配器：展示已添加的应用图标 + 末尾一个「添加」磁贴。
+ * 桌面磁贴网格适配器：展示已添加的应用 + 视频磁贴，末尾一个「添加」磁贴。
  * 排序与删除都在长按拖动的过程中完成（拖到删除区删除，其余位置排序）。
  */
 class AppGridAdapter(
     private val context: Context,
-    private val apps: MutableList<String>,
+    private val tiles: MutableList<DesktopTile>,
     private val showAddTile: Boolean = true
 ) : BaseAdapter() {
 
     private val TYPE_APP = 0
-    private val TYPE_ADD = 1
+    private val TYPE_VIDEO = 1
+    private val TYPE_ADD = 2
 
-    override fun getCount(): Int = apps.size + if (showAddTile) 1 else 0
+    override fun getCount(): Int = tiles.size + if (showAddTile) 1 else 0
 
     override fun getItem(position: Int): Any? =
-        if (position < apps.size) apps[position] else null
+        if (position < tiles.size) tiles[position] else null
 
     override fun getItemId(position: Int): Long = position.toLong()
 
-    override fun getItemViewType(position: Int): Int =
-        if (showAddTile && position == apps.size) TYPE_ADD else TYPE_APP
-
-    override fun getViewTypeCount(): Int = 2
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        if (showAddTile && position == apps.size) return addTile(convertView, parent)
-        return appTile(position, convertView, parent)
+    override fun getItemViewType(position: Int): Int = when {
+        showAddTile && position == tiles.size -> TYPE_ADD
+        tiles[position].type == TileType.VIDEO -> TYPE_VIDEO
+        else -> TYPE_APP
     }
 
-    private fun appTile(position: Int, convertView: View?, parent: ViewGroup): View {
+    override fun getViewTypeCount(): Int = 3
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        if (showAddTile && position == tiles.size) return addTile(convertView, parent)
+        val tile = tiles[position]
+        return if (tile.type == TileType.VIDEO) videoTile(tile, convertView, parent)
+        else appTile(tile, convertView, parent)
+    }
+
+    private fun appTile(tile: DesktopTile, convertView: View?, parent: ViewGroup): View {
         val view = convertView ?: LayoutInflater.from(context)
             .inflate(R.layout.item_desktop_app, parent, false)
         val icon = view.findViewById<ImageView>(R.id.img_icon)
         val label = view.findViewById<TextView>(R.id.tv_label)
 
-        val pkg = apps[position]
+        val pkg = tile.payload
         try {
             val ai = context.packageManager.getApplicationInfo(pkg, 0)
             icon.setImageDrawable(ai.loadIcon(context.packageManager))
             label.text = ai.loadLabel(context.packageManager)
         } catch (_: Exception) {
+            icon.setImageResource(R.drawable.ic_video)
             label.text = pkg
         }
+        return view
+    }
+
+    private fun videoTile(tile: DesktopTile, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context)
+            .inflate(R.layout.item_desktop_app, parent, false)
+        val icon = view.findViewById<ImageView>(R.id.img_icon)
+        val label = view.findViewById<TextView>(R.id.tv_label)
+        icon.setImageResource(R.drawable.ic_video)
+        label.text = tile.label.ifEmpty { tile.payload }
         return view
     }
 
