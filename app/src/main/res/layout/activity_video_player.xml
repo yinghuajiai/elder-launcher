@@ -76,7 +76,7 @@
             android:layout_height="wrap_content"
             android:minWidth="48dp"
             android:minHeight="44dp"
-            android:text="@string/btn_lock"
+            android:text="@string/btn_video_lock"
             android:textSize="13sp" />
     </LinearLayout>
 </FrameLayout>

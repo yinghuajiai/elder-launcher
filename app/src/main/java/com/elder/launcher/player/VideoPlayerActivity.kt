@@ -130,7 +130,7 @@ class VideoPlayerActivity : BaseActivity() {
         locked = !locked
         findViewById<PlayerView>(R.id.player_view).useController = !locked
         findViewById<Button>(R.id.btn_lock).text =
-            getString(if (locked) R.string.btn_unlock else R.string.btn_lock)
+            getString(if (locked) R.string.btn_video_unlock else R.string.btn_video_lock)
     }
 
     private fun showPlaylistDialog() {
