@@ -14,10 +14,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.ClockSettings
 import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
 import com.elder.launcher.permission.PermissionHelper
+import com.elder.launcher.player.PlayerSettings
+import com.elder.launcher.player.VideoLibraryActivity
 import com.elder.launcher.setup.OnboardingState
 
 /**
@@ -173,6 +176,7 @@ class MainActivity : BaseActivity() {
     private fun parents(): List<ParentDef> = listOf(
         ParentDef("permissions", getString(R.string.parent_permissions), { permissionSummary() }, { permissionItems() }),
         ParentDef("desktop", getString(R.string.parent_desktop), { getString(R.string.parent_desktop_sub) }, { desktopItems() }),
+        ParentDef("player", getString(R.string.parent_player), { getString(R.string.parent_player_sub) }, { playerItems() }),
         ParentDef("lock", getString(R.string.title_lock), { lockStatus() }, { lockItems() }),
         ParentDef("about", getString(R.string.parent_about), { appVersion() }, { aboutItems() })
     )
@@ -258,6 +262,9 @@ class MainActivity : BaseActivity() {
             DesktopSettings.setShowAddTile(this, !DesktopSettings.showAddTile(this))
             refresh()
         },
+        SettingsItem(getString(R.string.clock_mode), "", clockModeLabel()) { showClockModeDialog() },
+        SettingsItem(getString(R.string.clock_shape), "", clockShapeLabel()) { showClockShapeDialog() },
+        SettingsItem(getString(R.string.clock_order), "", clockOrderLabel()) { showClockOrderDialog() },
         SettingsItem(
             getString(R.string.setting_add_app),
             getString(R.string.setting_add_app_desc)
@@ -265,6 +272,121 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, AppPickerActivity::class.java))
         }
     )
+
+    private fun clockModeLabel(): String = when (ClockSettings.mode(this)) {
+        ClockSettings.MODE_ANALOG -> getString(R.string.clock_mode_analog)
+        ClockSettings.MODE_BOTH -> getString(R.string.clock_mode_both)
+        else -> getString(R.string.clock_mode_digital)
+    }
+
+    private fun clockShapeLabel(): String =
+        if (ClockSettings.shape(this) == ClockSettings.SHAPE_ROUNDED)
+            getString(R.string.clock_shape_rounded) else getString(R.string.clock_shape_circle)
+
+    private fun clockOrderLabel(): String =
+        if (ClockSettings.digitalLeft(this)) getString(R.string.clock_order_digital_left)
+        else getString(R.string.clock_order_digital_right)
+
+    private fun showClockModeDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_mode_digital),
+            getString(R.string.clock_mode_analog),
+            getString(R.string.clock_mode_both)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_mode))
+            .setItems(options) { _, which ->
+                ClockSettings.setMode(
+                    this,
+                    when (which) {
+                        0 -> ClockSettings.MODE_DIGITAL
+                        1 -> ClockSettings.MODE_ANALOG
+                        else -> ClockSettings.MODE_BOTH
+                    }
+                )
+                refresh()
+            }
+            .show()
+    }
+
+    private fun showClockShapeDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_shape_circle),
+            getString(R.string.clock_shape_rounded)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_shape))
+            .setItems(options) { _, which ->
+                ClockSettings.setShape(
+                    this,
+                    if (which == 0) ClockSettings.SHAPE_CIRCLE else ClockSettings.SHAPE_ROUNDED
+                )
+                refresh()
+            }
+            .show()
+    }
+
+    private fun showClockOrderDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_order_digital_left),
+            getString(R.string.clock_order_digital_right)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_order))
+            .setItems(options) { _, which ->
+                ClockSettings.setDigitalLeft(this, which == 0)
+                refresh()
+            }
+            .show()
+    }
+
+    private fun playerItems(): List<SettingsItem> = listOf(
+        SettingsItem(
+            getString(R.string.player_resume),
+            getString(R.string.player_resume_desc),
+            if (PlayerSettings.resumeEnabled(this)) getString(R.string.status_on) else getString(R.string.status_off)
+        ) {
+            PlayerSettings.setResumeEnabled(this, !PlayerSettings.resumeEnabled(this))
+            refresh()
+        },
+        SettingsItem(
+            getString(R.string.player_orientation),
+            "",
+            orientationLabel()
+        ) { showOrientationDialog() },
+        SettingsItem(
+            getString(R.string.open_video_library),
+            getString(R.string.open_video_library_desc)
+        ) {
+            startActivity(Intent(this, VideoLibraryActivity::class.java))
+        }
+    )
+
+    private fun orientationLabel(): String = when (PlayerSettings.orientation(this)) {
+        PlayerSettings.ORIENT_LANDSCAPE -> getString(R.string.player_orientation_landscape)
+        PlayerSettings.ORIENT_PORTRAIT -> getString(R.string.player_orientation_portrait)
+        else -> getString(R.string.player_orientation_auto)
+    }
+
+    private fun showOrientationDialog() {
+        val options = arrayOf(
+            getString(R.string.player_orientation_auto),
+            getString(R.string.player_orientation_landscape),
+            getString(R.string.player_orientation_portrait)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.player_orientation))
+            .setItems(options) { _, which ->
+                val value = when (which) {
+                    0 -> PlayerSettings.ORIENT_AUTO
+                    1 -> PlayerSettings.ORIENT_LANDSCAPE
+                    else -> PlayerSettings.ORIENT_PORTRAIT
+                }
+                PlayerSettings.setOrientation(this, value)
+                refresh()
+            }
+            .show()
+    }
 
     private fun lockItems(): List<SettingsItem> = listOf(
         SettingsItem(
