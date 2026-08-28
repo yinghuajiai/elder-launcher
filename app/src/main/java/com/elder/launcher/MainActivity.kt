@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.accessibility.AccessibilitySettings
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.ClockSettings
 import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.keepalive.LockState
 import com.elder.launcher.permission.PermissionDef
@@ -261,6 +262,9 @@ class MainActivity : BaseActivity() {
             DesktopSettings.setShowAddTile(this, !DesktopSettings.showAddTile(this))
             refresh()
         },
+        SettingsItem(getString(R.string.clock_mode), "", clockModeLabel()) { showClockModeDialog() },
+        SettingsItem(getString(R.string.clock_shape), "", clockShapeLabel()) { showClockShapeDialog() },
+        SettingsItem(getString(R.string.clock_order), "", clockOrderLabel()) { showClockOrderDialog() },
         SettingsItem(
             getString(R.string.setting_add_app),
             getString(R.string.setting_add_app_desc)
@@ -268,6 +272,73 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, AppPickerActivity::class.java))
         }
     )
+
+    private fun clockModeLabel(): String = when (ClockSettings.mode(this)) {
+        ClockSettings.MODE_ANALOG -> getString(R.string.clock_mode_analog)
+        ClockSettings.MODE_BOTH -> getString(R.string.clock_mode_both)
+        else -> getString(R.string.clock_mode_digital)
+    }
+
+    private fun clockShapeLabel(): String =
+        if (ClockSettings.shape(this) == ClockSettings.SHAPE_ROUNDED)
+            getString(R.string.clock_shape_rounded) else getString(R.string.clock_shape_circle)
+
+    private fun clockOrderLabel(): String =
+        if (ClockSettings.digitalLeft(this)) getString(R.string.clock_order_digital_left)
+        else getString(R.string.clock_order_digital_right)
+
+    private fun showClockModeDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_mode_digital),
+            getString(R.string.clock_mode_analog),
+            getString(R.string.clock_mode_both)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_mode))
+            .setItems(options) { _, which ->
+                ClockSettings.setMode(
+                    this,
+                    when (which) {
+                        0 -> ClockSettings.MODE_DIGITAL
+                        1 -> ClockSettings.MODE_ANALOG
+                        else -> ClockSettings.MODE_BOTH
+                    }
+                )
+                refresh()
+            }
+            .show()
+    }
+
+    private fun showClockShapeDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_shape_circle),
+            getString(R.string.clock_shape_rounded)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_shape))
+            .setItems(options) { _, which ->
+                ClockSettings.setShape(
+                    this,
+                    if (which == 0) ClockSettings.SHAPE_CIRCLE else ClockSettings.SHAPE_ROUNDED
+                )
+                refresh()
+            }
+            .show()
+    }
+
+    private fun showClockOrderDialog() {
+        val options = arrayOf(
+            getString(R.string.clock_order_digital_left),
+            getString(R.string.clock_order_digital_right)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clock_order))
+            .setItems(options) { _, which ->
+                ClockSettings.setDigitalLeft(this, which == 0)
+                refresh()
+            }
+            .show()
+    }
 
     private fun playerItems(): List<SettingsItem> = listOf(
         SettingsItem(

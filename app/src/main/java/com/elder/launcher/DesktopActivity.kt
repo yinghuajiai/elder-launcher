@@ -3,19 +3,25 @@ package com.elder.launcher
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.TypedValue
 import android.view.DragEvent
 import android.view.View
 import android.widget.AdapterView
 import android.widget.Button
 import android.widget.GridView
+import android.widget.LinearLayout
+import android.widget.TextClock
 import android.widget.TextView
 import android.widget.Toast
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.AnalogClockView
 import com.elder.launcher.desktop.AppGridAdapter
+import com.elder.launcher.desktop.ClockSettings
 import com.elder.launcher.desktop.DesktopApps
 import com.elder.launcher.desktop.DesktopSettings
 import com.elder.launcher.desktop.DesktopTile
@@ -50,6 +56,7 @@ class DesktopActivity : BaseActivity() {
         setContentView(R.layout.activity_desktop)
 
         updateDateTime()
+        renderClock()
 
         grid = findViewById(R.id.grid_apps)
         deleteZone = findViewById(R.id.tv_delete_zone)
@@ -94,6 +101,7 @@ class DesktopActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         updateDateTime()
+        renderClock()
         reloadAdapter()
         refreshExitButton()
     }
@@ -103,6 +111,54 @@ class DesktopActivity : BaseActivity() {
             SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date())
         findViewById<TextView>(R.id.tv_lunar).text = LunarCalendar.todayText()
     }
+
+    /** 按设置渲染时钟区：数字 / 指针 / 双时钟。 */
+    private fun renderClock() {
+        val container = findViewById<LinearLayout>(R.id.clock_container)
+        container.removeAllViews()
+        val mode = ClockSettings.mode(this)
+        val shape = ClockSettings.shape(this)
+        val digitalLeft = ClockSettings.digitalLeft(this)
+
+        when (mode) {
+            ClockSettings.MODE_ANALOG -> container.addView(analogClock(shape, 220f))
+            ClockSettings.MODE_BOTH -> {
+                val digital = digitalClock(42f)
+                val analog = analogClock(shape, 150f)
+                if (digitalLeft) {
+                    container.addView(digital)
+                    container.addView(analog)
+                } else {
+                    container.addView(analog)
+                    container.addView(digital)
+                }
+            }
+            else -> container.addView(digitalClock(72f))
+        }
+    }
+
+    private fun digitalClock(sizeSp: Float): TextClock = TextClock(this).apply {
+        format12Hour = "a h:mm"
+        format24Hour = "HH:mm"
+        setTextColor(0xFF1A5F7A.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
+        setTypeface(Typeface.DEFAULT_BOLD)
+        gravity = android.view.Gravity.CENTER
+    }
+
+    private fun analogClock(shape: String, sizeDp: Float): AnalogClockView {
+        val size = (sizeDp * resources.displayMetrics.density).toInt()
+        return AnalogClockView(this).apply {
+            this.shape = if (shape == ClockSettings.SHAPE_ROUNDED)
+                AnalogClockView.Shape.ROUNDED_SQUARE else AnalogClockView.Shape.CIRCLE
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginStart = dp(10)
+                marginEnd = dp(10)
+            }
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun reloadAdapter() {
         tiles = DesktopApps.list(this).toMutableList()

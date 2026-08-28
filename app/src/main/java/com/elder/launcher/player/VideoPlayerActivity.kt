@@ -1,6 +1,7 @@
 package com.elder.launcher.player
 
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
@@ -8,14 +9,15 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.elder.launcher.R
 import com.elder.launcher.base.BaseActivity
 
 /**
- * 视频播放页：播放一个播放列表（单个视频 = 只有一个成员的列表）。
- * 一个视频放完自动播下一个；顶部「列表」按钮可跳转任意一集。
+ * 视频播放页：播放一个播放列表，一个视频放完自动播下一个。
+ * 按视频方向自动旋转；顶部「列表」可跳任意一集；「旋转」手动转屏；「锁定」防误触进度条。
  */
 class VideoPlayerActivity : BaseActivity() {
 
@@ -24,6 +26,8 @@ class VideoPlayerActivity : BaseActivity() {
     private var currentIndex = 0
     private var playlistKey = ""
     private var pendingResumePosition = 0L
+    private var locked = false
+    private var manualOrientation = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +42,8 @@ class VideoPlayerActivity : BaseActivity() {
 
         findViewById<Button>(R.id.btn_back).setOnClickListener { finish() }
         findViewById<Button>(R.id.btn_playlist).setOnClickListener { showPlaylistDialog() }
+        findViewById<Button>(R.id.btn_rotate).setOnClickListener { rotateManually() }
+        findViewById<Button>(R.id.btn_lock).setOnClickListener { toggleLock() }
 
         applyOrientation()
 
@@ -55,6 +61,12 @@ class VideoPlayerActivity : BaseActivity() {
                     }
                 } else if (state == Player.STATE_ENDED) {
                     playNext()
+                }
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (!manualOrientation && PlayerSettings.orientation(this@VideoPlayerActivity) == PlayerSettings.ORIENT_AUTO) {
+                    applyAutoOrientation(videoSize.width, videoSize.height)
                 }
             }
         })
@@ -76,6 +88,7 @@ class VideoPlayerActivity : BaseActivity() {
             return
         }
         currentIndex = index
+        manualOrientation = false
         exo.setMediaItem(MediaItem.fromUri(Uri.parse(playlist[index].uri)))
         exo.prepare()
         findViewById<TextView>(R.id.tv_video_title).text = playlist[index].name
@@ -87,6 +100,37 @@ class VideoPlayerActivity : BaseActivity() {
         } else {
             finish()
         }
+    }
+
+    private fun applyOrientation() {
+        requestedOrientation = when (PlayerSettings.orientation(this)) {
+            PlayerSettings.ORIENT_LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            PlayerSettings.ORIENT_PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        }
+    }
+
+    /** 按视频宽高自动旋转（横的转横屏，竖的转竖屏）。 */
+    private fun applyAutoOrientation(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        requestedOrientation = if (width > height)
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
+
+    private fun rotateManually() {
+        manualOrientation = true
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        requestedOrientation = if (landscape)
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        else ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+    }
+
+    private fun toggleLock() {
+        locked = !locked
+        findViewById<PlayerView>(R.id.player_view).useController = !locked
+        findViewById<Button>(R.id.btn_lock).text =
+            getString(if (locked) R.string.btn_unlock else R.string.btn_lock)
     }
 
     private fun showPlaylistDialog() {
@@ -101,14 +145,6 @@ class VideoPlayerActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-    }
-
-    private fun applyOrientation() {
-        requestedOrientation = when (PlayerSettings.orientation(this)) {
-            PlayerSettings.ORIENT_LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            PlayerSettings.ORIENT_PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
-        }
     }
 
     override fun onStop() {

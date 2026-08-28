@@ -50,4 +50,33 @@
             android:text="@string/btn_playlist"
             android:textSize="14sp" />
     </LinearLayout>
+
+    <!-- 右下角：旋转 + 锁定（位于进度条上方） -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="76dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_rotate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:minWidth="48dp"
+            android:minHeight="44dp"
+            android:text="@string/btn_rotate"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_lock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="48dp"
+            android:minHeight="44dp"
+            android:text="@string/btn_lock"
+            android:textSize="13sp" />
+    </LinearLayout>
 </FrameLayout>
