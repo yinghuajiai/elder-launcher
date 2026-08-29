@@ -157,6 +157,20 @@ class DesktopActivity : BaseActivity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
+    /** 按网格密度计算图标大小（网格越少图标越大）。 */
+    private fun iconSizeDp(): Float {
+        val m = resources.displayMetrics
+        val widthDp = m.widthPixels / m.density
+        val heightDp = m.heightPixels / m.density
+        val cellW = (widthDp - 40f) / columns
+        val cellH = (heightDp * 0.45f) / rows
+        val cell = minOf(cellW, cellH)
+        return (cell * 0.6f).coerceIn(40f, 180f)
+    }
+
+    /** 应用名文字大小，随图标大小缩放。 */
+    private fun labelSizeSp(): Float = (iconSizeDp() * 0.22f).coerceIn(11f, 30f)
+
     private fun reloadAdapter() {
         tiles = DesktopApps.list(this).toMutableList()
         columns = DesktopSettings.columns(this).coerceAtLeast(1)
@@ -201,7 +215,7 @@ class DesktopActivity : BaseActivity() {
         grid.stretchMode = GridView.STRETCH_COLUMN_WIDTH
         grid.horizontalSpacing = dp(8)
         grid.verticalSpacing = dp(12)
-        grid.adapter = AppGridAdapter(this, pageTiles.toMutableList(), showAdd)
+        grid.adapter = AppGridAdapter(this, pageTiles.toMutableList(), showAdd, iconSizeDp(), labelSizeSp())
 
         grid.setOnItemClickListener { _, _, position, _ ->
             if (showAdd && position == pageTiles.size) {
@@ -470,8 +484,9 @@ class DesktopActivity : BaseActivity() {
     }
 
     private fun refreshExitButton() {
-        findViewById<Button>(R.id.btn_exit_lock).text =
-            if (LockState.lockEnabled(this)) getString(R.string.btn_exit_lock) else getString(R.string.btn_lock)
+        val btn = findViewById<Button>(R.id.btn_exit_lock)
+        btn.visibility = if (DesktopSettings.showExitButton(this)) View.VISIBLE else View.GONE
+        btn.text = if (LockState.lockEnabled(this)) getString(R.string.btn_exit_lock) else getString(R.string.btn_lock)
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()

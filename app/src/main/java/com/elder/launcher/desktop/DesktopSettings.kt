@@ -11,6 +11,7 @@ object DesktopSettings {
     private const val KEY_SHOW_ADD_TILE = "show_add_tile"
     private const val KEY_COLUMNS = "columns"
     private const val KEY_ROWS = "rows"
+    private const val KEY_SHOW_EXIT_BUTTON = "show_exit_button"
 
     /** 是否在桌面显示「+」添加磁贴（默认显示）。 */
     fun showAddTile(context: Context): Boolean =
@@ -40,5 +41,15 @@ object DesktopSettings {
     fun setRows(context: Context, value: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putInt(KEY_ROWS, value).apply()
+    }
+
+    /** 是否在桌面显示「退出」按钮（默认显示，可关掉防止误触退出）。 */
+    fun showExitButton(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SHOW_EXIT_BUTTON, true)
+
+    fun setShowExitButton(context: Context, value: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_SHOW_EXIT_BUTTON, value).apply()
     }
 }

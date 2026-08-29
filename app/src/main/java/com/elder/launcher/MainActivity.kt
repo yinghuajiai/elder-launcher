@@ -41,9 +41,13 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         asSettings = intent.getBooleanExtra(EXTRA_AS_SETTINGS, false)
 
-        // 已完成引导且非设置模式 → 直接进入桌面
-        if (OnboardingState.isDone(this) && !asSettings) {
-            startActivity(Intent(this, DesktopActivity::class.java))
+        // 非设置模式：按引导状态路由到桌面或引导向导
+        if (!asSettings) {
+            if (OnboardingState.isDone(this)) {
+                startActivity(Intent(this, DesktopActivity::class.java))
+            } else {
+                startActivity(Intent(this, OnboardingActivity::class.java))
+            }
             finish()
             return
         }
@@ -231,6 +235,10 @@ class MainActivity : BaseActivity() {
             },
             SettingsItem(getString(R.string.item_tap_read), if (AccessibilitySettings.tapToRead(this)) on else off) {
                 AccessibilitySettings.setTapToRead(this, !AccessibilitySettings.tapToRead(this))
+                refresh()
+            },
+            SettingsItem(getString(R.string.item_hourly_chime), if (AccessibilitySettings.hourlyChime(this)) on else off) {
+                AccessibilitySettings.setHourlyChime(this, !AccessibilitySettings.hourlyChime(this))
                 refresh()
             }
         )
@@ -436,7 +444,15 @@ class MainActivity : BaseActivity() {
             getString(R.string.lock_mode_title),
             getString(R.string.lock_mode_desc),
             lockStatus()
-        ) { toggleLock() }
+        ) { toggleLock() },
+        SettingsItem(
+            getString(R.string.setting_show_exit_button),
+            getString(R.string.setting_show_exit_button_desc),
+            if (DesktopSettings.showExitButton(this)) getString(R.string.status_on) else getString(R.string.status_off)
+        ) {
+            DesktopSettings.setShowExitButton(this, !DesktopSettings.showExitButton(this))
+            refresh()
+        }
     )
 
     private fun aboutItems(): List<SettingsItem> = listOf(
