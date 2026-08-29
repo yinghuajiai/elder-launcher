@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.elder.launcher.R
 import com.elder.launcher.player.CoverStore
@@ -59,7 +60,7 @@ class AppGridAdapter(
     }
 
     private fun bindLabel(icon: ImageView, label: TextView) {
-        icon.layoutParams = ViewGroup.LayoutParams(iconSizePx, iconSizePx)
+        icon.layoutParams = LinearLayout.LayoutParams(iconSizePx, iconSizePx)
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
     }
 
@@ -140,7 +141,7 @@ class AppGridAdapter(
             .inflate(R.layout.item_desktop_add, parent, false)
         val circle = view.findViewById<TextView>(R.id.tv_add_circle)
         val label = view.findViewById<TextView>(R.id.tv_add_label)
-        circle.layoutParams = ViewGroup.LayoutParams(iconSizePx, iconSizePx)
+        circle.layoutParams = LinearLayout.LayoutParams(iconSizePx, iconSizePx)
         circle.setTextSize(TypedValue.COMPLEX_UNIT_SP, iconSizeDp * 0.55f)
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
         return view
