@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
@@ -265,6 +266,7 @@ class MainActivity : BaseActivity() {
         SettingsItem(getString(R.string.clock_mode), "", clockModeLabel()) { showClockModeDialog() },
         SettingsItem(getString(R.string.clock_shape), "", clockShapeLabel()) { showClockShapeDialog() },
         SettingsItem(getString(R.string.clock_order), "", clockOrderLabel()) { showClockOrderDialog() },
+        SettingsItem(getString(R.string.grid_size), "", gridLabel()) { showGridDialog() },
         SettingsItem(
             getString(R.string.setting_add_app),
             getString(R.string.setting_add_app_desc)
@@ -337,6 +339,47 @@ class MainActivity : BaseActivity() {
                 ClockSettings.setDigitalLeft(this, which == 0)
                 refresh()
             }
+            .show()
+    }
+
+    private fun gridLabel(): String =
+        "${DesktopSettings.columns(this)}×${DesktopSettings.rows(this)}"
+
+    private fun showGridDialog() {
+        val presets = listOf(2 to 2, 2 to 3, 2 to 4, 3 to 3, 3 to 4, 3 to 5, 4 to 4, 4 to 5)
+        val options = presets.map { "${it.first}×${it.second}" } + getString(R.string.grid_custom)
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.grid_size))
+            .setItems(options.toTypedArray()) { _, which ->
+                if (which < presets.size) {
+                    val (c, r) = presets[which]
+                    DesktopSettings.setColumns(this, c)
+                    DesktopSettings.setRows(this, r)
+                    refresh()
+                } else {
+                    showCustomGridDialog()
+                }
+            }
+            .show()
+    }
+
+    private fun showCustomGridDialog() {
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_grid_custom, null)
+        val inputCols = view.findViewById<EditText>(R.id.input_cols)
+        val inputRows = view.findViewById<EditText>(R.id.input_rows)
+        inputCols.setText(DesktopSettings.columns(this).toString())
+        inputRows.setText(DesktopSettings.rows(this).toString())
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.grid_custom))
+            .setView(view)
+            .setPositiveButton(R.string.confirm) { _, _ ->
+                val c = (inputCols.text.toString().toIntOrNull() ?: 1).coerceIn(1, 8)
+                val r = (inputRows.text.toString().toIntOrNull() ?: 1).coerceIn(1, 8)
+                DesktopSettings.setColumns(this, c)
+                DesktopSettings.setRows(this, r)
+                refresh()
+            }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
