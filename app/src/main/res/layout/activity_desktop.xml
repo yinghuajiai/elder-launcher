@@ -56,6 +56,7 @@
                 android:id="@+id/pages_container"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:gravity="center_vertical"
                 android:orientation="horizontal" />
         </com.elder.launcher.desktop.PageScrollView>
     </LinearLayout>

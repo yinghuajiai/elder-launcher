@@ -118,10 +118,10 @@ class DesktopActivity : BaseActivity() {
         val digitalLeft = ClockSettings.digitalLeft(this)
 
         when (mode) {
-            ClockSettings.MODE_ANALOG -> container.addView(analogClock(shape, 220f))
+            ClockSettings.MODE_ANALOG -> container.addView(analogClock(shape, 240f))
             ClockSettings.MODE_BOTH -> {
-                val digital = digitalClock(42f)
-                val analog = analogClock(shape, 150f)
+                val digital = digitalClock(44f)
+                val analog = analogClock(shape, 160f)
                 if (digitalLeft) {
                     container.addView(digital)
                     container.addView(analog)
@@ -130,7 +130,7 @@ class DesktopActivity : BaseActivity() {
                     container.addView(digital)
                 }
             }
-            else -> container.addView(digitalClock(72f))
+            else -> container.addView(digitalClock(80f))
         }
     }
 
@@ -209,7 +209,7 @@ class DesktopActivity : BaseActivity() {
         val grid = GridView(this)
         grid.tag = pageIndex
         grid.numColumns = columns
-        grid.layoutParams = LinearLayout.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT)
+        grid.layoutParams = LinearLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT)
         grid.setPadding(dp(16), dp(8), dp(16), dp(16))
         grid.clipToPadding = false
         grid.stretchMode = GridView.STRETCH_COLUMN_WIDTH

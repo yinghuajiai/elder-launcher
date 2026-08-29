@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.widget.HorizontalScrollView
-import kotlin.math.roundToInt
 
 /**
  * 横向分页滚动容器：松手后吸附到最近的整页，禁用惯性，方便长辈一页页滑动。
@@ -30,11 +29,16 @@ class PageScrollView(context: Context, attrs: AttributeSet? = null) : Horizontal
 
     private fun snapToNearest() {
         if (pageWidth <= 0) return
-        val page = (scrollX.toFloat() / pageWidth).roundToInt().coerceAtLeast(0)
-        smoothScrollTo(page * pageWidth, 0)
-        if (page != currentPage) {
-            currentPage = page
-            onPageChanged?.invoke(page)
+        val fraction = scrollX.toFloat() / pageWidth
+        val target = when {
+            fraction >= currentPage + 0.25f -> currentPage + 1
+            fraction <= currentPage - 0.25f -> currentPage - 1
+            else -> currentPage
+        }.coerceAtLeast(0)
+        smoothScrollTo(target * pageWidth, 0)
+        if (target != currentPage) {
+            currentPage = target
+            onPageChanged?.invoke(target)
         }
     }
 }
