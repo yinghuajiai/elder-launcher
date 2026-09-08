@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -28,6 +29,8 @@ import com.elder.launcher.desktop.DesktopApps
  * 视频播放页：播放一个播放列表，一个视频放完自动播下一个。
  * 自定义控件（返回/标题/列表/旋转/锁定）跟随控制器显隐；
  * 锁定后隐藏进度条，双击暂停/播放，单击空白处唤出控制 2.5 秒以便解锁。
+ *
+ * 断点续播修复：锁屏时保存当前进度，回到前台自动恢复。
  */
 class VideoPlayerActivity : BaseActivity() {
 
@@ -39,6 +42,7 @@ class VideoPlayerActivity : BaseActivity() {
     private var locked = false
     private var manualOrientation = false
     private var systemBarsVisible = true
+    private var wasPlayingBeforePause = true
 
     private lateinit var playerView: PlayerView
     private lateinit var topBar: LinearLayout
@@ -102,13 +106,18 @@ class VideoPlayerActivity : BaseActivity() {
 
         exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) {
-                    if (pendingResumePosition > 1000) {
-                        exo.seekTo(pendingResumePosition)
-                        pendingResumePosition = 0L
+                when (state) {
+                    Player.STATE_READY -> {
+                        if (pendingResumePosition > 1000) {
+                            exo.seekTo(pendingResumePosition)
+                            pendingResumePosition = 0L
+                        }
+                        // 恢复播放状态
+                        if (wasPlayingBeforePause) exo.playWhenReady = true
                     }
-                } else if (state == Player.STATE_ENDED) {
-                    playNext()
+                    Player.STATE_ENDED -> {
+                        playNext()
+                    }
                 }
             }
 
@@ -116,6 +125,10 @@ class VideoPlayerActivity : BaseActivity() {
                 if (!manualOrientation && PlayerSettings.orientation(this@VideoPlayerActivity) == PlayerSettings.ORIENT_AUTO) {
                     applyAutoOrientation(videoSize.width, videoSize.height)
                 }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                wasPlayingBeforePause = isPlaying || exo.playbackState == Player.STATE_BUFFERING
             }
         })
 
@@ -131,6 +144,28 @@ class VideoPlayerActivity : BaseActivity() {
         }
         playItem(startIndex)
         exo.playWhenReady = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // 保存播放状态，以便恢复时判断是否继续播放
+        saveResumeState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val exo = player ?: return
+        // 如果设置了自动续播，恢复播放
+        if (PlayerSettings.autoResumeOnUnlock(this) && wasPlayingBeforePause) {
+            exo.playWhenReady = true
+        }
+    }
+
+    private fun saveResumeState() {
+        val exo = player ?: return
+        if (playlistKey.isNotEmpty() && PlayerSettings.resumeEnabled(this)) {
+            PlayerSettings.saveResume(this, playlistKey, currentIndex, exo.currentPosition.coerceAtLeast(0))
+        }
     }
 
     private fun setControlsVisible(visible: Boolean) {
@@ -150,7 +185,8 @@ class VideoPlayerActivity : BaseActivity() {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         }
     }
 
@@ -192,9 +228,11 @@ class VideoPlayerActivity : BaseActivity() {
         }
         currentIndex = index
         manualOrientation = false
-        exo.setMediaItem(MediaItem.fromUri(Uri.parse(playlist[index].uri)))
+        val entry = playlist[index]
+        val uri = Uri.parse(entry.uri)
+        exo.setMediaItem(MediaItem.fromUri(uri))
         exo.prepare()
-        findViewById<TextView>(R.id.tv_video_title).text = playlist[index].name
+        findViewById<TextView>(R.id.tv_video_title).text = entry.name
     }
 
     private fun playNext() {
@@ -261,7 +299,12 @@ class VideoPlayerActivity : BaseActivity() {
     }
 
     private fun captureCurrentCover() {
-        val uri = Uri.parse(playlist[currentIndex].uri)
+        val entry = playlist[currentIndex]
+        if (entry.type == VideoType.NETWORK) {
+            toast("网络视频暂不支持自动截帧")
+            return
+        }
+        val uri = Uri.parse(entry.uri)
         Thread {
             val cover = CoverStore.captureFromVideo(this, uri) ?: ""
             runOnUiThread { applyCover(cover) }
@@ -299,10 +342,8 @@ class VideoPlayerActivity : BaseActivity() {
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     override fun onStop() {
+        saveResumeState()
         val exo = player
-        if (exo != null && playlistKey.isNotEmpty() && PlayerSettings.resumeEnabled(this)) {
-            PlayerSettings.saveResume(this, playlistKey, currentIndex, exo.currentPosition.coerceAtLeast(0))
-        }
         exo?.release()
         player = null
         super.onStop()
