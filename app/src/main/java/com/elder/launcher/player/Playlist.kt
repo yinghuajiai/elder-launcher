@@ -51,24 +51,26 @@ object Playlist {
     }
 
     /** 按指定排序方式返回排序后的新列表（不修改原列表）。 */
-    fun sorted(entries: List<VideoEntry>, mode: SortMode, manualOrder: String = ""): List<VideoEntry> = when (mode) {
-        SortMode.ADD_ORDER -> entries
-        SortMode.NAME_AZ -> entries.sortedBy { it.name.lowercase() }
-        SortMode.NAME_ZA -> entries.sortedByDescending { it.name.lowercase() }
-        SortMode.MANUAL -> {
-            val orderList = manualOrder.split(",").filter { it.isNotEmpty() }
-            if (orderList.isEmpty()) return entries
-            val ordered = mutableListOf<VideoEntry>()
-            val remaining = entries.toMutableList()
-            for (key in orderList) {
-                val found = remaining.firstOrNull { it.uri == key }
-                if (found != null) {
-                    ordered.add(found)
-                    remaining.remove(found)
+    fun sorted(entries: List<VideoEntry>, mode: SortMode, manualOrder: String = ""): List<VideoEntry> {
+        return when (mode) {
+            SortMode.ADD_ORDER -> entries
+            SortMode.NAME_AZ -> entries.sortedBy { it.name.lowercase() }
+            SortMode.NAME_ZA -> entries.sortedByDescending { it.name.lowercase() }
+            SortMode.MANUAL -> {
+                val orderList = manualOrder.split(",").filter { it.isNotEmpty() }
+                if (orderList.isEmpty()) return entries
+                val ordered = mutableListOf<VideoEntry>()
+                val remaining = entries.toMutableList()
+                for (key in orderList) {
+                    val found = remaining.firstOrNull { it.uri == key }
+                    if (found != null) {
+                        ordered.add(found)
+                        remaining.remove(found)
+                    }
                 }
+                ordered.addAll(remaining)
+                ordered
             }
-            ordered.addAll(remaining)
-            ordered
         }
     }
 }
