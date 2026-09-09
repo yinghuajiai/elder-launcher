@@ -420,7 +420,7 @@ class VideoPlayerActivity : BaseActivity() {
 
         var dragFrom = -1
 
-        listView.setOnItemLongClickListener { _, view, pos ->
+        listView.setOnItemLongClickListener { _, view, pos, _ ->
             dragFrom = pos
             val clip = android.content.ClipData.newPlainText("", "")
             val shadow = View.DragShadowBuilder(view)
