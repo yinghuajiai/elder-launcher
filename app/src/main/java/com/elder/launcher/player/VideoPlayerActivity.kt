@@ -10,6 +10,7 @@ import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -44,6 +45,7 @@ class VideoPlayerActivity : BaseActivity() {
     private var systemBarsVisible = true
     private var wasPlayingBeforePause = true
     private var playerReleased = false
+    private var playlistSortMode = SortMode.ADD_ORDER
 
     private lateinit var playerView: PlayerView
     private lateinit var topBar: LinearLayout
@@ -320,21 +322,182 @@ class VideoPlayerActivity : BaseActivity() {
         else ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
     }
 
+    /** 按当前排序方式返回排序后的播放列表。 */
+    private fun sortedPlaylist(): List<VideoEntry> {
+        val manualOrder = if (playlistSortMode == SortMode.MANUAL) PlayerSettings.manualOrder(this) else ""
+        return Playlist.sorted(playlist, playlistSortMode, manualOrder)
+    }
+
     private fun showPlaylistDialog() {
-        val names = playlist.mapIndexed { i, e ->
+        val sorted = sortedPlaylist()
+        val names = sorted.mapIndexed { i, e ->
             e.name.ifEmpty { getString(R.string.playlist_unnamed, i + 1) }
         }.toTypedArray()
+        val sortedCurrentIndex = sorted.indexOfFirst { it.uri == playlist[currentIndex].uri }.coerceAtLeast(0)
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.playlist_title))
-            .setSingleChoiceItems(names, currentIndex) { d, which ->
-                playItem(which)
+            .setSingleChoiceItems(names, sortedCurrentIndex) { d, which ->
+                // 找到原始 playlist 中的索引
+                val target = sorted[which]
+                val realIndex = playlist.indexOfFirst { it.uri == target.uri }.coerceAtLeast(0)
+                playItem(realIndex)
                 d.dismiss()
             }
             .setPositiveButton(getString(R.string.add_video)) { _, _ ->
                 showAddToPlaylistDialog()
             }
+            .setNeutralButton(getString(R.string.sort_title)) { _, _ ->
+                showPlaylistSortDialog()
+            }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    /** 播放器内视频列表排序弹窗：添加顺序 / A-Z / Z-A / 手动拖动。 */
+    private fun showPlaylistSortDialog() {
+        val options = arrayOf(
+            getString(R.string.sort_add_order),
+            getString(R.string.sort_name_az),
+            getString(R.string.sort_name_za),
+            getString(R.string.sort_manual)
+        )
+        val checked = when (playlistSortMode) {
+            SortMode.ADD_ORDER -> 0
+            SortMode.NAME_AZ -> 1
+            SortMode.NAME_ZA -> 2
+            SortMode.MANUAL -> 3
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.sort_title))
+            .setSingleChoiceItems(options, checked) { d, which ->
+                playlistSortMode = when (which) {
+                    0 -> SortMode.ADD_ORDER
+                    1 -> SortMode.NAME_AZ
+                    2 -> SortMode.NAME_ZA
+                    else -> SortMode.MANUAL
+                }
+                d.dismiss()
+                if (playlistSortMode == SortMode.MANUAL) {
+                    showManualSortDialog()
+                } else {
+                    // 非手动模式，立即按排序重新排列 playlist
+                    val manualOrder = if (playlistSortMode == SortMode.MANUAL) PlayerSettings.manualOrder(this) else ""
+                    playlist = Playlist.sorted(playlist, playlistSortMode, manualOrder)
+                    savePlaylistToTile()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** 手动拖动排序：弹出一个可拖拽的列表。 */
+    private fun showManualSortDialog() {
+        val sorted = sortedPlaylist()
+        val items = sorted.toMutableList()
+        val names = items.mapIndexed { i, e ->
+            e.name.ifEmpty { getString(R.string.playlist_unnamed, i + 1) }
+        }.toMutableList()
+
+        val adapter = object : android.widget.BaseAdapter() {
+            override fun getCount(): Int = names.size
+            override fun getItem(position: Int): Any = items[position]
+            override fun getItemId(position: Int): Long = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = convertView ?: android.view.LayoutInflater.from(this@VideoPlayerActivity)
+                    .inflate(android.R.layout.simple_list_item_1, parent, false)
+                view.findViewById<TextView>(android.R.id.text1).text = "≡  ${names[position]}"
+                view.findViewById<TextView>(android.R.id.text1).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
+                view.setPadding(48, 24, 48, 24)
+                return view
+            }
+        }
+
+        val listView = android.widget.ListView(this).apply {
+            this.adapter = adapter
+            dividerHeight = 2
+        }
+
+        var dragFrom = -1
+
+        listView.setOnItemLongClickListener { _, view, pos ->
+            dragFrom = pos
+            val clip = android.content.ClipData.newPlainText("", "")
+            val shadow = View.DragShadowBuilder(view)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                view.startDragAndDrop(clip, shadow, null, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                view.startDrag(clip, shadow, null, 0)
+            }
+            true
+        }
+
+        listView.setOnDragListener { _, event ->
+            when (event.action) {
+                android.view.DragEvent.ACTION_DROP -> {
+                    val y = event.y.toInt()
+                    val pos = listView.pointToPosition(0, y)
+                    if (dragFrom >= 0 && dragFrom < items.size &&
+                        pos >= 0 && pos < items.size && dragFrom != pos) {
+                        val movedItem = items.removeAt(dragFrom)
+                        items.add(pos, movedItem)
+                        val movedName = names.removeAt(dragFrom)
+                        names.add(pos, movedName)
+                        adapter.notifyDataSetChanged()
+                    }
+                    dragFrom = -1
+                }
+                android.view.DragEvent.ACTION_DRAG_ENDED -> {
+                    dragFrom = -1
+                }
+            }
+            true
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.sort_manual))
+            .setView(listView)
+            .setPositiveButton(R.string.confirm) { _, _ ->
+                // 保存手动排序结果
+                playlist = items
+                savePlaylistToTile()
+                val order = playlist.joinToString(",") { it.uri }
+                PlayerSettings.setManualOrder(this, order)
+                toast("排序已保存")
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                // 取消则恢复为添加顺序
+                playlistSortMode = SortMode.ADD_ORDER
+            }
+            .setOnCancelListener {
+                playlistSortMode = SortMode.ADD_ORDER
+            }
+            .show()
+    }
+
+    /** 将当前 playlist 写回桌面磁贴。 */
+    private fun savePlaylistToTile() {
+        val newPayload = Playlist.encode(playlist)
+        val tiles = DesktopApps.list(this)
+        var updated = false
+        val updatedTiles = tiles.map { tile ->
+            if (tile.payload == playlistKey) {
+                updated = true
+                tile.copy(payload = newPayload, label = buildPlaylistLabel(playlist))
+            } else if (tile.type == com.elder.launcher.desktop.TileType.VIDEO && tile.payload == playlistKey) {
+                updated = true
+                com.elder.launcher.desktop.DesktopTile.playlist(
+                    newPayload, buildPlaylistLabel(playlist), tile.cover
+                )
+            } else {
+                tile
+            }
+        }
+        if (updated) {
+            DesktopApps.replace(this, updatedTiles)
+            playlistKey = newPayload
+        }
     }
 
     /** 在视频列表弹窗中追加本地或网络视频。 */
