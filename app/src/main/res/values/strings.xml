@@ -127,6 +127,8 @@
     <string name="sort_add_order">添加顺序</string>
     <string name="sort_name_az">名称 A-Z</string>
     <string name="sort_name_za">名称 Z-A</string>
+    <string name="sort_manual">手动拖动排序</string>
+    <string name="sort_manual_hint">长按条目可拖动排序</string>
 
     <!-- 内置导航栏 -->
     <string name="parent_navbar">内置导航栏</string>

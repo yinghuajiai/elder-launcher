@@ -1,9 +1,12 @@
 package com.elder.launcher.player
 
+import android.content.ClipData
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.text.InputType
+import android.view.DragEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,17 +24,20 @@ import com.elder.launcher.desktop.DesktopApps
 
 /**
  * 视频库：展示所有桌面磁贴中的视频条目。
- * 支持排序（添加顺序 / A-Z / Z-A）和添加本地/网络视频。
+ * 支持排序（添加顺序 / A-Z / Z-A / 手动拖动）和添加本地/网络视频。
  * 点击条目播放对应视频。
  */
 class VideoLibraryActivity : BaseActivity() {
 
     private lateinit var listView: ListView
     private lateinit var emptyView: TextView
-    private var videos: List<VideoEntry> = emptyList()
+    private var videos: MutableList<VideoEntry> = mutableListOf()
     private lateinit var btnSort: Button
     private lateinit var btnAddLocal: Button
     private lateinit var btnAddNetwork: Button
+    private var isManualSortMode = false
+
+    private var dragIndex = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,12 +55,21 @@ class VideoLibraryActivity : BaseActivity() {
         btnAddNetwork.setOnClickListener { showAddNetworkDialog() }
 
         listView.setOnItemClickListener { _, _, position, _ ->
-            val v = videos[position]
-            startActivity(
-                Intent(this, VideoPlayerActivity::class.java)
-                    .putExtra(VideoPlayerActivity.EXTRA_KEY, v.uri)
-                    .putExtra(VideoPlayerActivity.EXTRA_PLAYLIST, Playlist.encode(listOf(v)))
-            )
+            if (!isManualSortMode && position < videos.size) {
+                val v = videos[position]
+                startActivity(
+                    Intent(this, VideoPlayerActivity::class.java)
+                        .putExtra(VideoPlayerActivity.EXTRA_KEY, v.uri)
+                        .putExtra(VideoPlayerActivity.EXTRA_PLAYLIST, Playlist.encode(listOf(v)))
+                )
+            }
+        }
+
+        listView.setOnItemLongClickListener { _, view, position, _ ->
+            if (isManualSortMode && position < videos.size) {
+                startDrag(view, position)
+                true
+            } else false
         }
 
         loadAndRender()
@@ -68,8 +83,10 @@ class VideoLibraryActivity : BaseActivity() {
     private fun loadAndRender() {
         val sortMode = PlayerSettings.sortMode(this)
         val entries = collectAllVideoEntries()
-        videos = Playlist.sorted(entries, sortMode)
-        render(videos)
+        isManualSortMode = sortMode == SortMode.MANUAL
+        val manualOrder = if (sortMode == SortMode.MANUAL) PlayerSettings.manualOrder(this) else ""
+        videos = Playlist.sorted(entries, sortMode, manualOrder).toMutableList()
+        render()
     }
 
     /** 从桌面磁贴收集所有视频条目（本地 + 网络）。 */
@@ -97,14 +114,15 @@ class VideoLibraryActivity : BaseActivity() {
         val options = arrayOf(
             getString(R.string.sort_add_order),
             getString(R.string.sort_name_az),
-            getString(R.string.sort_name_za)
+            getString(R.string.sort_name_za),
+            getString(R.string.sort_manual)
         )
         val current = PlayerSettings.sortMode(this)
         val checked = when (current) {
             SortMode.ADD_ORDER -> 0
             SortMode.NAME_AZ -> 1
             SortMode.NAME_ZA -> 2
-            SortMode.MANUAL -> 0
+            SortMode.MANUAL -> 3
         }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.sort_title))
@@ -112,11 +130,15 @@ class VideoLibraryActivity : BaseActivity() {
                 val mode = when (which) {
                     0 -> SortMode.ADD_ORDER
                     1 -> SortMode.NAME_AZ
-                    else -> SortMode.NAME_ZA
+                    2 -> SortMode.NAME_ZA
+                    else -> SortMode.MANUAL
                 }
                 PlayerSettings.setSortMode(this, mode)
                 d.dismiss()
                 loadAndRender()
+                if (mode == SortMode.MANUAL) {
+                    Toast.makeText(this, getString(R.string.sort_manual_hint), Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -212,14 +234,56 @@ class VideoLibraryActivity : BaseActivity() {
         ""
     }
 
-    private fun render(list: List<VideoEntry>) {
-        videos = list
-        listView.adapter = VideoAdapter(list)
-        emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-        listView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+    // ==================== 手动拖动排序 ====================
+
+    private fun startDrag(view: View, position: Int) {
+        dragIndex = position
+        val clip = ClipData.newPlainText("", "")
+        val shadow = View.DragShadowBuilder(view)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            view.startDragAndDrop(clip, shadow, null, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            view.startDrag(clip, shadow, null, 0)
+        }
     }
 
-    private inner class VideoAdapter(private val items: List<VideoEntry>) : BaseAdapter() {
+    private fun handleDrag(event: DragEvent, targetPosition: Int): Boolean {
+        when (event.action) {
+            DragEvent.ACTION_DROP -> {
+                if (dragIndex >= 0 && dragIndex < videos.size &&
+                    targetPosition >= 0 && targetPosition < videos.size &&
+                    dragIndex != targetPosition
+                ) {
+                    val moved = videos.removeAt(dragIndex)
+                    videos.add(targetPosition, moved)
+                    saveManualOrder()
+                    render()
+                }
+                dragIndex = -1
+            }
+            DragEvent.ACTION_DRAG_ENDED -> {
+                dragIndex = -1
+                render()
+            }
+        }
+        return true
+    }
+
+    private fun saveManualOrder() {
+        val order = videos.joinToString(",") { it.uri }
+        PlayerSettings.setManualOrder(this, order)
+    }
+
+    // ==================== 渲染 ====================
+
+    private fun render() {
+        listView.adapter = VideoAdapter(videos)
+        emptyView.visibility = if (videos.isEmpty()) View.VISIBLE else View.GONE
+        listView.visibility = if (videos.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    private inner class VideoAdapter(private val items: MutableList<VideoEntry>) : BaseAdapter() {
         override fun getCount(): Int = items.size
         override fun getItem(position: Int): Any = items[position]
         override fun getItemId(position: Int): Long = position.toLong()
@@ -228,10 +292,25 @@ class VideoLibraryActivity : BaseActivity() {
             val view = convertView ?: LayoutInflater.from(this@VideoLibraryActivity)
                 .inflate(R.layout.item_video_library, parent, false)
             val v = items[position]
+
+            // 拖拽手柄：仅手动排序模式显示
+            val handle = view.findViewById<TextView>(R.id.tv_drag_handle)
+            handle.visibility = if (isManualSortMode) View.VISIBLE else View.GONE
+
             val tag = if (v.type == VideoType.NETWORK) "🌐" else "📁"
             view.findViewById<TextView>(R.id.tv_video_name).text = "$tag ${v.name}"
             view.findViewById<TextView>(R.id.tv_video_duration).text =
                 if (v.type == VideoType.NETWORK) getString(R.string.video_type_network) else v.uri
+
+            // 手动排序模式下，整行响应拖拽事件
+            if (isManualSortMode) {
+                view.setOnDragListener { _, event ->
+                    handleDrag(event, position)
+                }
+            } else {
+                view.setOnDragListener(null)
+            }
+
             return view
         }
     }

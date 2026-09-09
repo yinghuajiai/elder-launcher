@@ -14,6 +14,17 @@ object PlayerSettings {
     private const val KEY_ORIENTATION = "orientation"
     private const val KEY_AUTO_RESUME_ON_UNLOCK = "auto_resume_on_unlock"
     private const val KEY_SORT_MODE = "sort_mode"
+    private const val KEY_MANUAL_ORDER = "manual_order"
+
+    /** 手动排序数据：逗号分隔的视频 URI 列表，表示用户拖拽后确认的顺序。 */
+    fun manualOrder(context: Context): String =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_MANUAL_ORDER, "") ?: ""
+
+    fun setManualOrder(context: Context, value: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_MANUAL_ORDER, value).apply()
+    }
 
     const val ORIENT_AUTO = "auto"
     const val ORIENT_LANDSCAPE = "landscape"
