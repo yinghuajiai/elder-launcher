@@ -332,22 +332,27 @@ class VideoPlayerActivity : BaseActivity() {
         val sorted = sortedPlaylist()
         val names = sorted.mapIndexed { i, e ->
             e.name.ifEmpty { getString(R.string.playlist_unnamed, i + 1) }
-        }.toTypedArray()
+        }.toMutableList()
+        // 末尾追加「添加视频」入口
+        names.add("+ ${getString(R.string.add_video)}")
+
         val sortedCurrentIndex = sorted.indexOfFirst { it.uri == playlist[currentIndex].uri }.coerceAtLeast(0)
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.playlist_title))
-            .setSingleChoiceItems(names, sortedCurrentIndex) { d, which ->
-                // 找到原始 playlist 中的索引
-                val target = sorted[which]
-                val realIndex = playlist.indexOfFirst { it.uri == target.uri }.coerceAtLeast(0)
-                playItem(realIndex)
-                d.dismiss()
+            .setSingleChoiceItems(names.toTypedArray(), sortedCurrentIndex) { d, which ->
+                if (which == sorted.size) {
+                    // 点击了「添加视频」
+                    d.dismiss()
+                    showAddToPlaylistDialog()
+                } else {
+                    val target = sorted[which]
+                    val realIndex = playlist.indexOfFirst { it.uri == target.uri }.coerceAtLeast(0)
+                    playItem(realIndex)
+                    d.dismiss()
+                }
             }
-            .setPositiveButton(getString(R.string.add_video)) { _, _ ->
-                showAddToPlaylistDialog()
-            }
-            .setNeutralButton(getString(R.string.sort_title)) { _, _ ->
+            .setPositiveButton(getString(R.string.sort_title)) { _, _ ->
                 showPlaylistSortDialog()
             }
             .setNegativeButton(R.string.cancel, null)
