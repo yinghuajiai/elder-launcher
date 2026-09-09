@@ -2,10 +2,11 @@ package com.elder.launcher.player
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.OpenableColumns
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -16,9 +17,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.elder.launcher.R
 import com.elder.launcher.base.BaseActivity
+import com.elder.launcher.desktop.DesktopApps
 
 /**
- * 播放器主页：视频库。支持排序（添加顺序/A-Z/手动拖动）和网络视频添加。
+ * 视频库：展示所有桌面磁贴中的视频条目。
+ * 支持排序（添加顺序 / A-Z / Z-A）和添加本地/网络视频。
+ * 点击条目播放对应视频。
  */
 class VideoLibraryActivity : BaseActivity() {
 
@@ -26,6 +30,7 @@ class VideoLibraryActivity : BaseActivity() {
     private lateinit var emptyView: TextView
     private var videos: List<VideoEntry> = emptyList()
     private lateinit var btnSort: Button
+    private lateinit var btnAddLocal: Button
     private lateinit var btnAddNetwork: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,10 +40,12 @@ class VideoLibraryActivity : BaseActivity() {
         listView = findViewById(R.id.lv_videos)
         emptyView = findViewById(R.id.tv_empty)
         btnSort = findViewById(R.id.btn_sort)
+        btnAddLocal = findViewById(R.id.btn_add_local)
         btnAddNetwork = findViewById(R.id.btn_add_network)
         findViewById<Button>(R.id.btn_back).setOnClickListener { finish() }
 
         btnSort.setOnClickListener { showSortDialog() }
+        btnAddLocal.setOnClickListener { pickLocalVideo() }
         btnAddNetwork.setOnClickListener { showAddNetworkDialog() }
 
         listView.setOnItemClickListener { _, _, position, _ ->
@@ -60,14 +67,8 @@ class VideoLibraryActivity : BaseActivity() {
 
     private fun loadAndRender() {
         val sortMode = PlayerSettings.sortMode(this)
-        val all = Playlist.decode(Playlist.encode(emptyList())) // 占位
-        // 从桌面磁贴中收集所有视频条目
         val entries = collectAllVideoEntries()
-        videos = if (sortMode == SortMode.MANUAL) {
-            entries
-        } else {
-            Playlist.sorted(entries, sortMode)
-        }
+        videos = Playlist.sorted(entries, sortMode)
         render(videos)
     }
 
@@ -75,7 +76,7 @@ class VideoLibraryActivity : BaseActivity() {
     private fun collectAllVideoEntries(): List<VideoEntry> {
         val result = mutableListOf<VideoEntry>()
         try {
-            val tiles = com.elder.launcher.desktop.DesktopApps.list(this)
+            val tiles = DesktopApps.list(this)
             for (tile in tiles) {
                 when (tile.type) {
                     com.elder.launcher.desktop.TileType.VIDEO -> {
@@ -121,6 +122,21 @@ class VideoLibraryActivity : BaseActivity() {
             .show()
     }
 
+    /** 添加本地视频到桌面。 */
+    private fun pickLocalVideo() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        try {
+            startActivityForResult(intent, REQ_PICK_VIDEO)
+        } catch (_: Exception) {
+            Toast.makeText(this, "无法打开文件选择器", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** 添加网络视频到桌面。 */
     private fun showAddNetworkDialog() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -128,7 +144,7 @@ class VideoLibraryActivity : BaseActivity() {
         }
         val urlInput = EditText(this).apply {
             hint = getString(R.string.add_video_url_hint)
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+            inputType = InputType.TYPE_TEXT_VARIATION_URI
             setSingleLine()
         }
         val nameInput = EditText(this).apply {
@@ -153,14 +169,47 @@ class VideoLibraryActivity : BaseActivity() {
                 }
                 val name = nameInput.text.toString().trim().ifEmpty { url }
                 val entry = VideoEntry(url, name, VideoType.NETWORK)
-                com.elder.launcher.desktop.DesktopApps.addPlaylist(
-                    this, listOf(entry),
-                    name, ""
-                )
+                DesktopApps.addPlaylist(this, listOf(entry), name, "")
                 loadAndRender()
+                Toast.makeText(this, "已添加网络视频", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_VIDEO || resultCode != RESULT_OK) return
+
+        val uris = mutableListOf<android.net.Uri>()
+        val clip = data?.clipData
+        if (clip != null) {
+            for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+        } else {
+            data?.data?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) return
+
+        for (u in uris) {
+            try {
+                contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) {
+            }
+            val name = queryDisplayName(u)
+            DesktopApps.addVideo(this, u.toString(), name)
+        }
+        loadAndRender()
+        Toast.makeText(this, "已添加 ${uris.size} 个本地视频", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun queryDisplayName(uri: android.net.Uri): String = try {
+        contentResolver.query(uri, null, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && c.moveToFirst()) c.getString(idx) ?: "" else ""
+        } ?: ""
+    } catch (_: Exception) {
+        ""
     }
 
     private fun render(list: List<VideoEntry>) {
@@ -188,6 +237,6 @@ class VideoLibraryActivity : BaseActivity() {
     }
 
     companion object {
-        private const val TAG = "VideoLibrary"
+        private const val REQ_PICK_VIDEO = 300
     }
 }

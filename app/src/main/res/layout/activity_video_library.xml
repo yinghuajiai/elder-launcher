@@ -32,12 +32,21 @@
             android:textStyle="bold" />
 
         <Button
-            android:id="@+id/btn_add_network"
+            android:id="@+id/btn_add_local"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:minWidth="56dp"
             android:minHeight="44dp"
             android:text="@string/add_video"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_add_network"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:text="@string/add_video_network"
             android:textSize="13sp" />
 
         <Button
