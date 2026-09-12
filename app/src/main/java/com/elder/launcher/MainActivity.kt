@@ -414,6 +414,14 @@ class MainActivity : BaseActivity() {
             refresh()
         },
         SettingsItem(
+            getString(R.string.player_loop),
+            getString(R.string.player_loop_desc),
+            if (PlayerSettings.loopEnabled(this)) getString(R.string.status_on) else getString(R.string.status_off)
+        ) {
+            PlayerSettings.setLoopEnabled(this, !PlayerSettings.loopEnabled(this))
+            refresh()
+        },
+        SettingsItem(
             getString(R.string.player_orientation),
             "",
             orientationLabel()

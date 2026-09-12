@@ -294,6 +294,9 @@ class VideoPlayerActivity : BaseActivity() {
     private fun playNext() {
         if (currentIndex + 1 < playlist.size) {
             playItem(currentIndex + 1)
+        } else if (PlayerSettings.loopEnabled(this)) {
+            // 循环播放：回到第一个
+            playItem(0)
         } else {
             finish()
         }
@@ -541,37 +544,62 @@ class VideoPlayerActivity : BaseActivity() {
             setPadding(48, 32, 48, 16)
         }
         val urlInput = EditText(this).apply {
-            hint = getString(R.string.add_video_url_hint)
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
-            setSingleLine()
-        }
-        val nameInput = EditText(this).apply {
-            hint = getString(R.string.add_video_name_hint)
-            setSingleLine()
+            hint = getString(R.string.add_video_url_batch_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 4
+            gravity = android.view.Gravity.TOP
         }
         container.addView(urlInput, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        container.addView(nameInput, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = 24
-        })
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(160)))
 
         AlertDialog.Builder(this)
             .setTitle(R.string.add_video_network)
+            .setMessage(R.string.add_video_url_batch_desc)
             .setView(container)
             .setPositiveButton(R.string.confirm) { _, _ ->
-                val url = urlInput.text.toString().trim()
-                if (url.isEmpty()) {
-                    toast("请输入视频地址")
+                val text = urlInput.text.toString()
+                val entries = parseNetworkVideos(text)
+                if (entries.isEmpty()) {
+                    toast("未识别到有效的视频地址")
                     return@setPositiveButton
                 }
-                val name = nameInput.text.toString().trim().ifEmpty { url }
-                val entry = VideoEntry(url, name, VideoType.NETWORK)
-                appendToPlaylist(listOf(entry))
+                appendToPlaylist(entries)
+                toast("已添加 ${entries.size} 个网络视频")
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
+
+    /** 解析批量输入的网络视频：每行一个 URL，自动识别文件名。 */
+    private fun parseNetworkVideos(text: String): List<VideoEntry> {
+        val entries = mutableListOf<VideoEntry>()
+        val lines = text.split('\n', '\r', ' ', '\t')
+        for (raw in lines) {
+            val url = raw.trim()
+            if (url.isEmpty()) continue
+            if (!url.startsWith("http://") && !url.startsWith("https://")) continue
+            val name = extractNetworkName(url)
+            entries.add(VideoEntry(url, name, VideoType.NETWORK))
+        }
+        return entries
+    }
+
+    /** 从 URL 提取文件名：取路径最后一段并 URL 解码；失败则返回 URL 本身。 */
+    private fun extractNetworkName(url: String): String {
+        return try {
+            val path = Uri.parse(url).path ?: ""
+            val last = path.substringAfterLast('/')
+            if (last.isNotEmpty()) {
+                java.net.URLDecoder.decode(last, "UTF-8")
+            } else {
+                url
+            }
+        } catch (_: Exception) {
+            url
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     /** 将新视频条目追加到当前播放列表并更新桌面磁贴。 */
     private fun appendToPlaylist(newEntries: List<VideoEntry>) {
